@@ -2,6 +2,8 @@
 
 import { createContext, useEffect, useState } from "react";
 import liff from "@line/liff";
+import Cookies from "js-cookie";
+import { createApiHeaders, getApiBaseUrl } from "@/utils/apiHeaders";
 
 type LiffContextType = {
   user: {
@@ -56,19 +58,88 @@ export default function LiffProvider({
           return;
         }
 
-        // Get user profile from LIFF
-        const profile = await liff.getProfile();
+        // Get LIFF access token
+        const liffAccessToken = liff.getAccessToken();
+        if (!liffAccessToken) {
+          throw new Error("Failed to get LIFF Access Token");
+        }
 
-        console.log("User profile:", profile);
+        console.log("Got LIFF access token");
+
+        // Check if backend API is configured
+        const apiBaseUrl = getApiBaseUrl();
+        if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
+          console.warn("Backend API not configured. Using LIFF-only mode.");
+          // Fallback to LIFF profile only
+          const profile = await liff.getProfile();
+          setUser({
+            userId: profile.userId,
+            displayName: profile.displayName,
+            pictureUrl: profile.pictureUrl,
+          });
+          setIsInitialized(true);
+          return;
+        }
+
+        // Exchange LIFF token for backend JWT token
+        console.log("Exchanging LIFF token for JWT...");
+
+        const authResponse = await fetch(`${apiBaseUrl}/users/auth/line-login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            access_token: liffAccessToken,
+            channel_id: process.env.NEXT_PUBLIC_LINE_CHANNEL_ID as string,
+          }),
+        });
+
+        if (!authResponse.ok) {
+          const errorData = await authResponse.json().catch(() => ({}));
+          throw new Error(`Authentication failed: ${errorData.message || authResponse.statusText}`);
+        }
+
+        const authData = await authResponse.json();
+        const backendToken = authData.data.access_token;
+
+        console.log("Got JWT token from backend");
+
+        // Store token in both cookies and localStorage for reliability
+        Cookies.set("access_token", backendToken, {
+          expires: 1, // 1 day
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "Lax",
+        });
+        localStorage.setItem("access_token", backendToken);
+
+        // Fetch user profile from backend
+        console.log("Fetching user profile from backend...");
+
+        const userResponse = await fetch(`${apiBaseUrl}/users/me`, {
+          method: "GET",
+          headers: createApiHeaders(backendToken),
+          credentials: "include",
+        });
+
+        if (!userResponse.ok) {
+          throw new Error("Failed to fetch user profile from backend");
+        }
+
+        const userData = await userResponse.json();
+
+        console.log("User profile from backend:", userData.data);
 
         // Set user context
         setUser({
-          userId: profile.userId,
-          displayName: profile.displayName,
-          pictureUrl: profile.pictureUrl,
+          userId: userData.data.line_user_id,
+          displayName: userData.data.line_display_name,
+          pictureUrl: userData.data.picture,
         });
 
         setIsInitialized(true);
+        console.log("✓ Authentication complete!");
+
       } catch (err) {
         console.error("LIFF initialization failed:", err);
         // Still mark as initialized to show error state
@@ -87,6 +158,8 @@ export default function LiffProvider({
       liff.logout();
     }
     setUser(null);
+    Cookies.remove("access_token");
+    localStorage.removeItem("access_token");
     window.location.reload();
   };
 
