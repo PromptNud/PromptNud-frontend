@@ -9,10 +9,11 @@ const nextConfig: NextConfig = {
   // This avoids cross-origin cookie issues in LINE's in-app browser (WebKit/ITP).
   async rewrites() {
     const backendUrl = process.env.API_BASE_URL;
+    console.log('[next.config] API_BASE_URL:', backendUrl ?? '(not set)');
     if (!backendUrl) return [];
     return [
       {
-        source: '/api/v1/:path*',
+        source: '/backend/:path*',
         destination: `${backendUrl}/api/v1/:path*`,
       },
     ];
