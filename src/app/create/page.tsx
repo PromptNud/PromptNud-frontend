@@ -545,12 +545,12 @@ function CreateMeetingContent() {
                             !isSameDay(dateRangeStart, dateRangeEnd!) && (
                               <div className="absolute inset-y-0 left-0 right-1/2 bg-primary/10 rounded-r-full" />
                             )}
-                          <span
+                          <button
                             onClick={() => handleDateClick(day)}
-                            className="relative z-10 block bg-primary text-white font-bold py-2 rounded-full shadow-md w-full h-full flex items-center justify-center cursor-pointer"
+                            className="relative z-10 bg-primary text-white font-bold py-2 rounded-full shadow-md w-full h-full flex items-center justify-center cursor-pointer"
                           >
                             {format(day, "d")}
-                          </span>
+                          </button>
                         </div>
                       );
                     }

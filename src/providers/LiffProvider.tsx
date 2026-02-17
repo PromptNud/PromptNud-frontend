@@ -2,7 +2,7 @@
 
 import { createContext, useEffect, useState } from "react";
 import liff from "@line/liff";
-import { getApiBaseUrl } from "@/utils/apiHeaders";
+import { createApiHeaders, getApiBaseUrl } from "@/utils/apiHeaders";
 
 type LiffContextType = {
   user: {
@@ -85,9 +85,7 @@ export default function LiffProvider({
 
         const authResponse = await fetch(`${apiBaseUrl}/users/auth/line-login`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: createApiHeaders(),
           credentials: "include",
           body: JSON.stringify({
             access_token: liffAccessToken,
@@ -108,7 +106,7 @@ export default function LiffProvider({
 
         const userResponse = await fetch(`${apiBaseUrl}/users/me`, {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+          headers: createApiHeaders(),
           credentials: "include",
         });
 
@@ -148,6 +146,7 @@ export default function LiffProvider({
     const apiBaseUrl = getApiBaseUrl();
     await fetch(`${apiBaseUrl}/users/auth/logout`, {
       method: "POST",
+      headers: createApiHeaders(),
       credentials: "include",
     }).catch(() => {});
 
