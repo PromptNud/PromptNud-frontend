@@ -2,7 +2,6 @@
 
 import { createContext, useEffect, useState } from "react";
 import liff from "@line/liff";
-import Cookies from "js-cookie";
 import { createApiHeaders, getApiBaseUrl } from "@/utils/apiHeaders";
 
 type LiffContextType = {
@@ -86,9 +85,8 @@ export default function LiffProvider({
 
         const authResponse = await fetch(`${apiBaseUrl}/users/auth/line-login`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: createApiHeaders(),
+          credentials: "include",
           body: JSON.stringify({
             access_token: liffAccessToken,
             channel_id: process.env.NEXT_PUBLIC_LINE_CHANNEL_ID as string,
@@ -100,25 +98,15 @@ export default function LiffProvider({
           throw new Error(`Authentication failed: ${errorData.message || authResponse.statusText}`);
         }
 
-        const authData = await authResponse.json();
-        const backendToken = authData.data.access_token;
+        // The backend sets the JWT as an HttpOnly cookie in the response
+        console.log("Got JWT cookie from backend");
 
-        console.log("Got JWT token from backend");
-
-        // Store token in both cookies and localStorage for reliability
-        Cookies.set("access_token", backendToken, {
-          expires: 1, // 1 day
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "Lax",
-        });
-        localStorage.setItem("access_token", backendToken);
-
-        // Fetch user profile from backend
+        // Fetch user profile from backend (cookie is sent automatically)
         console.log("Fetching user profile from backend...");
 
         const userResponse = await fetch(`${apiBaseUrl}/users/me`, {
           method: "GET",
-          headers: createApiHeaders(backendToken),
+          headers: createApiHeaders(),
           credentials: "include",
         });
 
@@ -153,13 +141,19 @@ export default function LiffProvider({
     }
   }, []);
 
-  const logout = () => {
+  const logout = async () => {
+    // Clear the HttpOnly cookie via backend logout endpoint
+    const apiBaseUrl = getApiBaseUrl();
+    await fetch(`${apiBaseUrl}/users/auth/logout`, {
+      method: "POST",
+      headers: createApiHeaders(),
+      credentials: "include",
+    }).catch(() => {});
+
     if (liff.isLoggedIn()) {
       liff.logout();
     }
     setUser(null);
-    Cookies.remove("access_token");
-    localStorage.removeItem("access_token");
     window.location.reload();
   };
 
