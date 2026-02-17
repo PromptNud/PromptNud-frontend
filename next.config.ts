@@ -5,6 +5,19 @@ const nextConfig: NextConfig = {
 
   transpilePackages: ['@line/liff'],
 
+  // Proxy API calls through Next.js so the browser sees same-origin requests.
+  // This avoids cross-origin cookie issues in LINE's in-app browser (WebKit/ITP).
+  async rewrites() {
+    const backendUrl = process.env.API_BASE_URL;
+    if (!backendUrl) return [];
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: `${backendUrl}/api/v1/:path*`,
+      },
+    ];
+  },
+
   // Security headers
   async headers() {
     return [
