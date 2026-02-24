@@ -30,13 +30,13 @@ export interface Meeting {
 
 export interface CreateMeetingRequest {
   title: string;
+  lineGroupId: string;
   type: string;
   durationMinutes: number;
+  locationMode: string;
   location?: string;
-  dateRangeStart: string;
-  dateRangeEnd: string;
-  preferredDays: string[];
-  preferredTimes: string[];
+  selectedDates: string[];
+  timeSlots: { start: string; end: string }[];
+  memberMode: string;
   notes?: string;
-  groupId?: string;
 }
