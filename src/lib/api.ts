@@ -53,6 +53,15 @@ class ApiClient {
   async getMeetingsByGroup(groupId: string): Promise<{ meetings: Meeting[] }> {
     return this.fetch<{ meetings: Meeting[] }>(`/meetings/group/${groupId}`);
   }
+
+  // Locations
+  async getLocations(): Promise<{
+    data: { id: string; name: string; latitude: number; longitude: number }[];
+  }> {
+    return this.fetch<{
+      data: { id: string; name: string; latitude: number; longitude: number }[];
+    }>("/locations");
+  }
 }
 
 export const api = new ApiClient();

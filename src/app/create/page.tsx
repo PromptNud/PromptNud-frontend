@@ -18,7 +18,7 @@ import {
   addDays,
   addWeeks,
 } from "date-fns";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useLiff } from "@/hooks/useLiff";
 import type { CreateMeetingRequest } from "@/types/meeting";
@@ -153,6 +153,14 @@ function CreateMeetingContent() {
     );
   };
 
+  // Locations query (for recommend mode)
+  const { data: locationsData } = useQuery({
+    queryKey: ["locations"],
+    queryFn: () => api.getLocations(),
+    enabled: locationMode === "recommend",
+  });
+  const locations = locationsData?.data ?? [];
+
   // Mutation
   const createMeeting = useMutation({
     mutationFn: (data: CreateMeetingRequest) => api.createMeeting(data),
@@ -172,7 +180,7 @@ function CreateMeetingContent() {
       dateRangeEnd: format(dateRangeEnd, "yyyy-MM-dd"),
       preferredDays: selectedDays,
       preferredTimes: selectedTimeSlots,
-      ...(locationMode === "specify" && location.trim()
+      ...((locationMode === "specify" || locationMode === "recommend") && location.trim()
         ? { location: location.trim() }
         : {}),
       ...(notes.trim() ? { notes: notes.trim() } : {}),
@@ -232,7 +240,7 @@ function CreateMeetingContent() {
               <label className="block text-gray-500 text-xs font-semibold uppercase tracking-wider mb-3">
                 Type
               </label>
-              <div className="grid grid-cols-4 gap-2 w-full">
+              <div className="grid grid-cols-2 gap-2 w-full">
                 {MEETING_TYPES.map((t) => (
                   <button
                     key={t.value}
@@ -360,6 +368,28 @@ function CreateMeetingContent() {
                     />
                   </div>
                 </>
+              )}
+              {locationMode === "recommend" && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Where would you like to go?
+                  </label>
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4">
+                    {locations.map((loc) => (
+                      <button
+                        key={loc.id}
+                        onClick={() => setLocation(loc.name)}
+                        className={`flex-none h-12 px-6 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
+                          location === loc.name
+                            ? "bg-primary/10 text-primary font-bold border border-primary/20"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent"
+                        }`}
+                      >
+                        {loc.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           </div>
