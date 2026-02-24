@@ -40,9 +40,21 @@ class ApiClient {
 
   // Meetings
   async createMeeting(data: CreateMeetingRequest): Promise<Meeting> {
+    const body = {
+      title: data.title,
+      line_group_id: data.lineGroupId,
+      type: data.type,
+      duration_minutes: data.durationMinutes,
+      location_mode: data.locationMode,
+      location: data.location,
+      selected_dates: data.selectedDates,
+      time_slots: data.timeSlots,
+      member_mode: data.memberMode,
+      notes: data.notes,
+    };
     return this.fetch<Meeting>("/meetings", {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify(body),
     });
   }
 

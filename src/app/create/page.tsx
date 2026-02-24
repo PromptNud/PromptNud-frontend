@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useMemo, useCallback } from "react";
+import { Suspense, useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   format,
@@ -11,6 +11,7 @@ import {
   startOfWeek,
   endOfWeek,
   eachDayOfInterval,
+  getDay,
   isSameMonth,
   isSameDay,
   isAfter,
@@ -63,6 +64,111 @@ function formatTimeSlot(slot: string): string {
   return `${start} - ${end}`;
 }
 
+// ── Wheel picker ──────────────────────────────────────────────────────────────
+
+const ITEM_H = 32;
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+const MINUTES = ["00", "15", "30", "45"];
+
+function WheelColumn({
+  items,
+  value,
+  onChange,
+}: {
+  items: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialIdx = Math.max(0, items.indexOf(value));
+  const [displayIdx, setDisplayIdx] = useState(initialIdx);
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.scrollTop = initialIdx * ITEM_H;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleScroll = () => {
+    if (!ref.current) return;
+    const idx = Math.max(
+      0,
+      Math.min(items.length - 1, Math.round(ref.current.scrollTop / ITEM_H))
+    );
+    setDisplayIdx(idx);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      onChange(items[idx]);
+      ref.current?.scrollTo({ top: idx * ITEM_H, behavior: "smooth" });
+    }, 80);
+  };
+
+  return (
+    <div
+      ref={ref}
+      className="w-8 h-full overflow-y-scroll no-scrollbar"
+      onScroll={handleScroll}
+      style={{ touchAction: "pan-y" }}
+    >
+      <div style={{ height: ITEM_H }} />
+      {items.map((item, i) => (
+        <div
+          key={item}
+          style={{ height: ITEM_H }}
+          className="flex items-center justify-center"
+        >
+          <span
+            className={
+              i === displayIdx
+                ? "text-gray-900 text-lg font-bold relative z-10"
+                : "text-gray-400 text-xs opacity-60"
+            }
+          >
+            {item}
+          </span>
+        </div>
+      ))}
+      <div style={{ height: ITEM_H }} />
+    </div>
+  );
+}
+
+function TimeDrum({
+  label,
+  hour,
+  minute,
+  onHourChange,
+  onMinuteChange,
+}: {
+  label: string;
+  hour: string;
+  minute: string;
+  onHourChange: (v: string) => void;
+  onMinuteChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex-1 min-w-0">
+      <div className="text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+        {label}
+      </div>
+      <div className="h-24 bg-gray-50 rounded-2xl border border-gray-100 relative overflow-hidden flex items-center justify-center">
+        {/* highlight bar */}
+        <div className="absolute inset-x-0 h-8 top-1/2 -translate-y-1/2 bg-white border-y border-gray-200 z-0 shadow-sm pointer-events-none" />
+        <WheelColumn items={HOURS} value={hour} onChange={onHourChange} />
+        <span className="text-gray-300 text-lg font-light z-10 relative pb-0.5 mx-0.5">:</span>
+        <WheelColumn items={MINUTES} value={minute} onChange={onMinuteChange} />
+        {/* fades */}
+        <div className="absolute inset-x-0 top-0 h-7 bg-gradient-to-b from-gray-50 via-gray-50/70 to-transparent z-20 pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-7 bg-gradient-to-t from-gray-50 via-gray-50/70 to-transparent z-20 pointer-events-none" />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function CreateMeetingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -88,6 +194,13 @@ function CreateMeetingContent() {
   const [notes, setNotes] = useState("");
   const [timeDetailsOpen, setTimeDetailsOpen] = useState(true);
   const [othersOpen, setOthersOpen] = useState(true);
+
+  // Edit time slot modal
+  const [editingSlotIdx, setEditingSlotIdx] = useState<number | null>(null);
+  const [editStartH, setEditStartH] = useState("09");
+  const [editStartM, setEditStartM] = useState("00");
+  const [editEndH, setEditEndH] = useState("11");
+  const [editEndM, setEditEndM] = useState("00");
 
   // Calendar
   const calendarDays = useMemo(() => {
@@ -153,6 +266,30 @@ function CreateMeetingContent() {
     );
   };
 
+  const openEditSlot = (e: React.MouseEvent, idx: number) => {
+    e.stopPropagation();
+    const [start, end] = timeSlots[idx].split("-");
+    const [sh, sm] = start.split(":");
+    const [eh, em] = end.split(":");
+    setEditStartH(sh);
+    setEditStartM(sm);
+    setEditEndH(eh);
+    setEditEndM(em);
+    setEditingSlotIdx(idx);
+  };
+
+  const saveEditSlot = () => {
+    if (editingSlotIdx === null) return;
+    const startMins = parseInt(editStartH) * 60 + parseInt(editStartM);
+    const endMins = parseInt(editEndH) * 60 + parseInt(editEndM);
+    if (startMins >= endMins) return;
+    const oldSlot = timeSlots[editingSlotIdx];
+    const newSlot = `${editStartH}:${editStartM}-${editEndH}:${editEndM}`;
+    setTimeSlots((prev) => prev.map((s, i) => (i === editingSlotIdx ? newSlot : s)));
+    setSelectedTimeSlots((prev) => prev.map((s) => (s === oldSlot ? newSlot : s)));
+    setEditingSlotIdx(null);
+  };
+
   // Locations query (for recommend mode)
   const { data: locationsData } = useQuery({
     queryKey: ["locations"],
@@ -170,21 +307,34 @@ function CreateMeetingContent() {
   });
 
   const handleSubmit = () => {
-    if (!title.trim() || !dateRangeStart || !dateRangeEnd) return;
+    if (!title.trim() || !dateRangeStart || !dateRangeEnd || !groupId) return;
+
+    // Expand date range + day filter → actual date list
+    const dayNameMap = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const allDatesInRange = eachDayOfInterval({ start: dateRangeStart, end: dateRangeEnd });
+    const selectedDates = allDatesInRange
+      .filter(d => selectedDays.includes(dayNameMap[getDay(d)]))
+      .map(d => format(d, "yyyy-MM-dd"));
+
+    // Split "HH:MM-HH:MM" → {start, end}
+    const timeSlotObjects = selectedTimeSlots.map(slot => {
+      const [start, end] = slot.split("-");
+      return { start, end };
+    });
 
     const data: CreateMeetingRequest = {
       title: title.trim(),
+      lineGroupId: groupId,
       type: meetingType,
       durationMinutes,
-      dateRangeStart: format(dateRangeStart, "yyyy-MM-dd"),
-      dateRangeEnd: format(dateRangeEnd, "yyyy-MM-dd"),
-      preferredDays: selectedDays,
-      preferredTimes: selectedTimeSlots,
+      locationMode,
+      selectedDates,
+      timeSlots: timeSlotObjects,
+      memberMode: "all_members",
       ...((locationMode === "specify" || locationMode === "recommend") && location.trim()
         ? { location: location.trim() }
         : {}),
       ...(notes.trim() ? { notes: notes.trim() } : {}),
-      ...(groupId ? { groupId } : {}),
     };
 
     createMeeting.mutate(data);
@@ -624,13 +774,13 @@ function CreateMeetingContent() {
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-3 w-full">
-                {timeSlots.map((slot) => {
+                {timeSlots.map((slot, slotIdx) => {
                   const isSelected = selectedTimeSlots.includes(slot);
                   return (
-                    <button
+                    <div
                       key={slot}
                       onClick={() => toggleTimeSlot(slot)}
-                      className={`relative w-full h-16 rounded-xl flex items-center justify-center transition-colors ${
+                      className={`relative w-full h-16 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
                         isSelected
                           ? "bg-primary/10 border border-primary/20 shadow-sm"
                           : "bg-gray-50 border border-gray-200"
@@ -645,7 +795,22 @@ function CreateMeetingContent() {
                       >
                         {formatTimeSlot(slot)}
                       </span>
-                    </button>
+                      <button
+                        onClick={(e) => openEditSlot(e, slotIdx)}
+                        className={`absolute top-1 right-1 rounded-full p-1 transition-colors ${
+                          isSelected
+                            ? "hover:bg-primary/20 text-primary"
+                            : "hover:bg-gray-200 text-gray-400"
+                        }`}
+                      >
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: "16px" }}
+                        >
+                          edit
+                        </span>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -689,6 +854,74 @@ function CreateMeetingContent() {
         </section>
       </main>
 
+      {/* Edit Time Slot Modal */}
+      {editingSlotIdx !== null && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setEditingSlotIdx(null)}
+          />
+          <div className="relative w-full max-w-[340px] bg-white rounded-3xl shadow-2xl p-6">
+            <h3 className="text-center text-lg font-bold text-gray-900 mb-6">
+              Edit Time Slot
+            </h3>
+            <div className="flex items-start gap-3 mb-6">
+              <TimeDrum
+                label="Start Time"
+                hour={editStartH}
+                minute={editStartM}
+                onHourChange={setEditStartH}
+                onMinuteChange={setEditStartM}
+              />
+              <div className="self-center pt-5 text-gray-400 font-medium text-sm">
+                to
+              </div>
+              <TimeDrum
+                label="End Time"
+                hour={editEndH}
+                minute={editEndM}
+                onHourChange={setEditEndH}
+                onMinuteChange={setEditEndM}
+              />
+            </div>
+            {(() => {
+              const invalid =
+                parseInt(editStartH) * 60 + parseInt(editStartM) >=
+                parseInt(editEndH) * 60 + parseInt(editEndM);
+              return (
+                <>
+                  {invalid && (
+                    <p className="text-center text-xs font-medium text-red-500 mb-3 -mt-3">
+                      Start time must be before end time
+                    </p>
+                  )}
+                  <div className="flex justify-center mb-6">
+                    <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
+                      (GMT +7) Bangkok Time
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setEditingSlotIdx(null)}
+                      className="w-full py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors text-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={saveEditSlot}
+                      disabled={invalid}
+                      className="w-full py-3 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/25 hover:bg-primary-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <footer className="absolute bottom-0 left-0 w-full bg-surface-light/90 backdrop-blur-md border-t border-gray-200 p-4 pb-8 z-20">
         <button
@@ -697,6 +930,7 @@ function CreateMeetingContent() {
             !title.trim() ||
             !dateRangeStart ||
             !dateRangeEnd ||
+            !groupId ||
             createMeeting.isPending
           }
           className="w-full bg-primary hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-lg py-4 rounded-2xl shadow-lg shadow-primary/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
