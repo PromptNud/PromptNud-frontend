@@ -192,6 +192,7 @@ function CreateMeetingContent() {
     "17:00-19:00",
   ]);
   const [notes, setNotes] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [timeDetailsOpen, setTimeDetailsOpen] = useState(true);
   const [othersOpen, setOthersOpen] = useState(true);
 
@@ -321,6 +322,16 @@ function CreateMeetingContent() {
       const [start, end] = slot.split("-");
       return { start, end };
     });
+
+    if (selectedDates.length === 0) {
+      setValidationError("No dates match the selected day filters. Please adjust your date range or day selection.");
+      return;
+    }
+    if (timeSlotObjects.length === 0) {
+      setValidationError("Please select at least one time slot.");
+      return;
+    }
+    setValidationError(null);
 
     const data: CreateMeetingRequest = {
       title: title.trim(),
@@ -944,6 +955,9 @@ function CreateMeetingContent() {
             <span>Create Meeting</span>
           )}
         </button>
+        {validationError && (
+          <p className="text-red-500 text-sm text-center mt-2">{validationError}</p>
+        )}
         {createMeeting.isError && (
           <p className="text-red-500 text-sm text-center mt-2">
             {createMeeting.error.message}
