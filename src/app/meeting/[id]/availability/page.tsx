@@ -5,7 +5,16 @@ import Link from "next/link";
 
 export default function AvailabilityPage() {
   const params = useParams();
-  const meetingId = params.id as string;
+  const rawId = params.id;
+  const meetingId = Array.isArray(rawId) ? rawId[0] : rawId;
+
+  if (!meetingId) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-6">
+        <p className="text-sm text-gray-500">Invalid meeting ID.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-6">
@@ -24,7 +33,7 @@ export default function AvailabilityPage() {
         </div>
         <Link
           href="/"
-          className="inline-block rounded-full bg-[#F98006] px-6 py-2.5 text-sm font-medium text-white"
+          className="inline-block rounded-full bg-[#F98006] hover:bg-orange-600 px-6 py-2.5 text-sm font-medium text-white transition-colors"
         >
           Back to Home
         </Link>

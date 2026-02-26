@@ -58,12 +58,12 @@ class ApiClient {
     });
   }
 
-  async getMeeting(id: string): Promise<Meeting> {
-    return this.fetch<Meeting>(`/meetings/${id}`);
+  async getMeeting(id: string) {
+    return this.fetch<{ data: Meeting }>(`/meetings/${id}`);
   }
 
-  async getMeetingsByGroup(groupId: string): Promise<{ meetings: Meeting[] }> {
-    return this.fetch<{ meetings: Meeting[] }>(`/meetings/group/${groupId}`);
+  async getMeetingsByGroup(groupId: string) {
+    return this.fetch<{ data: Meeting[] }>(`/meetings/group/${groupId}`);
   }
 
   // Locations
