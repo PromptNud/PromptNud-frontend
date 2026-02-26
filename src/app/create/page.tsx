@@ -302,8 +302,8 @@ function CreateMeetingContent() {
   // Mutation
   const createMeeting = useMutation({
     mutationFn: (data: CreateMeetingRequest) => api.createMeeting(data),
-    onSuccess: (meeting) => {
-      router.push(`/`);
+    onSuccess: () => {
+      router.push("/");
     },
   });
 

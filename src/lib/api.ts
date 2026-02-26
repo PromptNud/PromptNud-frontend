@@ -39,7 +39,7 @@ class ApiClient {
   }
 
   // Meetings
-  async createMeeting(data: CreateMeetingRequest): Promise<Meeting> {
+  async createMeeting(data: CreateMeetingRequest) {
     const body = {
       title: data.title,
       line_group_id: data.lineGroupId,
@@ -52,7 +52,7 @@ class ApiClient {
       member_mode: data.memberMode,
       notes: data.notes,
     };
-    return this.fetch<Meeting>("/meetings", {
+    return this.fetch<{ data: Meeting }>("/meetings", {
       method: "POST",
       body: JSON.stringify(body),
     });

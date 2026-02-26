@@ -15,11 +15,11 @@ function HomePageContent() {
   useEffect(() => {
     if (!isInitialized) return;
 
-    // Get groupId from URL params or LIFF context
+    // Get groupId from URL params (provided by LINE bot webhook link)
     const urlGroupId = searchParams.get("groupId");
     const context = liff.getContext();
 
-    setGroupId(urlGroupId || context?.groupId || null);
+    setGroupId(urlGroupId || null);
     setContextType(context?.type || "none");
 
     // Handle action param
