@@ -1,12 +1,16 @@
 # Meeting Scheduler - Frontend (LIFF App)
 
-AI-powered meeting scheduling assistant for LINE groups. This is the frontend LIFF application that runs inside the LINE messaging app.
+Next.js LIFF application for LINE group meeting scheduling. Runs inside the LINE messaging app, authenticating users through the LIFF SDK and exchanging tokens for backend JWT cookies.
 
-## Current Status: LIFF-Only Testing Phase ✅
+## Tech Stack
 
-This app is currently configured to test LINE LIFF connection **without requiring a backend server**. This allows you to verify the LIFF integration before implementing the backend API.
-
----
+- **Framework:** Next.js 16 (App Router), React 19, TypeScript 5
+- **Styling:** Tailwind CSS v4
+- **Server State:** TanStack React Query v5
+- **Client State:** Zustand
+- **LINE Integration:** LIFF SDK (`@line/liff` v2.27)
+- **Auth:** HttpOnly cookie (set by backend, no client-side token handling)
+- **Date Utilities:** date-fns
 
 ## Quick Start
 
@@ -16,18 +20,15 @@ This app is currently configured to test LINE LIFF connection **without requirin
 npm install
 ```
 
-### 2. Configure Environment Variables
+### 2. Configure Environment
 
-Create a `.env.local` file:
+Create `.env.local`:
 
-```bash
-# LIFF Configuration (Required for testing)
-NEXT_PUBLIC_LIFF_ID=your_liff_id_here
-NEXT_PUBLIC_LINE_CHANNEL_ID=your_line_channel_id
-
-# Backend API (Not needed for LIFF-only testing)
-# NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1
-```
+| Variable | Description | Default |
+|---|---|---|
+| `NEXT_PUBLIC_LIFF_ID` | LINE LIFF App ID | — (required) |
+| `NEXT_PUBLIC_LINE_CHANNEL_ID` | LINE Channel ID | — (required) |
+| `NEXT_PUBLIC_API_BASE_URL` | Backend API base URL | `http://localhost:8080/api/v1` |
 
 ### 3. Run Development Server
 
@@ -35,200 +36,139 @@ NEXT_PUBLIC_LINE_CHANNEL_ID=your_line_channel_id
 npm run dev
 ```
 
-The app will be available at [http://localhost:3000](http://localhost:3000)
+App available at `http://localhost:3000`.
 
-### 4. Deploy for Testing
+### 4. Test in LINE
 
-You need to deploy to test with LIFF (localhost won't work in LINE app):
+LIFF apps must be accessed through LINE — localhost won't work in the LINE app.
 
-**Option A: Vercel (Recommended)**
+**Option A: ngrok**
 ```bash
-npm install -g vercel
-vercel
-```
-
-**Option B: ngrok**
-```bash
-npm install -g ngrok
 ngrok http 3000
 ```
+Then set the ngrok URL as your LIFF Endpoint URL in the [LINE Developers Console](https://developers.line.biz/console/).
 
-### 5. Configure LINE LIFF
+**Option B: Vercel**
+```bash
+npx vercel
+```
 
-1. Go to [LINE Developers Console](https://developers.line.biz/console/)
-2. Create/edit your LIFF app
-3. Set Endpoint URL to your deployment URL
-4. Enable scopes: `profile`, `openid`
-5. Copy your LIFF ID to `.env.local`
-
-### 6. Test in LINE App
-
-1. Get your LIFF URL: `https://liff.line.me/YOUR-LIFF-ID`
-2. Send it to yourself in LINE
-3. Tap the link to open the app
-4. You should see your profile and connection status
-
----
-
-## 📚 Documentation
-
-- **[LIFF Testing Guide](./LIFF_TESTING_GUIDE.md)** - Complete instructions for testing LIFF connection
-- **[Frontend Setup Guide](./FRONTEND_SETUP_GUIDE.md)** - Full setup instructions from scratch
-- **[Changes for LIFF-Only](./CHANGES_FOR_LIFF_ONLY.md)** - What was modified for LIFF-only testing
-- **[Tech Spec](./ai-scheduling-assistant-tech-spec.md)** - Complete technical specification
-
----
-
-## What Works Now
-
-✅ **LIFF Connection Features:**
-- LINE LIFF initialization and login
-- User authentication via LINE
-- User profile display (name, picture, User ID)
-- Context detection (1-on-1 chat vs group chat)
-- Group ID extraction (when opened from groups)
-- In-client detection (LINE app vs external browser)
-- Logout functionality
-
-❌ **Not Implemented Yet (Requires Backend):**
-- Creating meetings
-- Storing user data
-- Meeting list
-- Availability tracking
-- AI suggestions
-
----
+Open `https://liff.line.me/YOUR-LIFF-ID` in LINE to test.
 
 ## Project Structure
 
 ```
 src/
 ├── app/
-│   ├── layout.tsx          # Root layout with LIFF provider
-│   ├── page.tsx            # Home page with LIFF status
-│   └── providers.tsx       # React Query provider
-├── components/             # UI components (to be added)
-├── hooks/
-│   └── useLiff.ts          # LIFF context hook
-├── lib/
-│   └── api.ts              # API client (ready for backend)
+│   ├── layout.tsx              # Root layout with LiffProvider
+│   ├── page.tsx                # Home dashboard (profile, status, meeting list)
+│   ├── providers.tsx           # React Query provider (staleTime: 60s, retry: 1)
+│   ├── globals.css             # Tailwind + custom theme variables
+│   ├── create/page.tsx         # Meeting creation form
+│   ├── callback/google/        # (Planned) Google OAuth callback
+│   └── meeting/[id]/
+│       ├── availability/       # (Planned) Availability voting page
+│       └── results/            # (Planned) Meeting results page
 ├── providers/
-│   └── LiffProvider.tsx    # LIFF initialization & auth
+│   └── LiffProvider.tsx        # LIFF SDK init, LINE login, JWT cookie exchange
+├── hooks/
+│   └── useLiff.ts              # Context hook: { user, isInitialized, isInClient, logout }
+├── lib/
+│   └── api.ts                  # ApiClient class (fetch wrapper, credentials: "include")
 ├── types/
-│   └── meeting.ts          # TypeScript types
-└── utils/
-    └── apiHeaders.ts       # API utilities (ready for backend)
+│   └── meeting.ts              # TypeScript interfaces (User, Meeting, CreateMeetingRequest)
+├── utils/
+│   └── apiHeaders.ts           # API headers helper (auto-adds ngrok bypass header)
+├── components/                 # (Planned) Extracted reusable components
+│   ├── availability/
+│   ├── common/
+│   └── meeting/
+└── middleware.ts               # Next.js middleware for ngrok handling
 ```
 
----
+## Pages
 
-## Tech Stack
+### Home Dashboard (`/`)
 
-- **Framework:** Next.js 15.x with App Router
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS
-- **LIFF SDK:** @line/liff 2.25+
-- **State Management:** React Query + Zustand
-- **Date Handling:** date-fns
+- User profile display (avatar, name, LINE user ID)
+- LIFF connection status (initialized, in-client, logged in, context type)
+- Group ID extraction from LIFF context or URL params
+- "Create New Meeting" button
 
----
+### Meeting Creation (`/create`)
+
+- Title, meeting type (meals/cafe/sports/others), duration
+- Location mode: specify, decide later, or recommend (fetches from API)
+- Date range calendar picker with month navigation and quick presets (1-4 weeks)
+- Day preferences (weekdays/weekends/custom toggle)
+- Time slot selection (pre-defined slots in GMT+7)
+- Notes field
+- Form validation and API submission
+
+## Authentication Flow
+
+1. `LiffProvider` initializes LIFF SDK and triggers LINE login
+2. LIFF access token is exchanged with backend via `POST /users/auth/line-login`
+3. Backend sets JWT as HttpOnly cookie (`access_token`)
+4. All API calls use `credentials: "include"` — cookie sent automatically
+5. Fallback: if backend is unavailable, uses LIFF profile directly
+
+## API Client
+
+`ApiClient` in `src/lib/api.ts` provides:
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `getMe()` | `GET /users/me` | Current user profile |
+| `createMeeting(data)` | `POST /meetings` | Create a meeting |
+| `getMeeting(id)` | `GET /meetings/:id` | Fetch meeting by ID |
+| `getMeetingsByGroup(groupId)` | `GET /meetings/group/:groupId` | Meetings for a LINE group |
+| `getLocations()` | `GET /locations` | Recommended locations |
 
 ## Scripts
 
 ```bash
-# Development
-npm run dev          # Start dev server (localhost:3000)
-
-# Production
-npm run build        # Build for production
+npm run dev          # Dev server on localhost:3000
+npm run build        # Production build
 npm run start        # Start production server
-
-# Code Quality
-npm run lint         # Run ESLint
+npm run lint         # ESLint
 ```
 
----
+## Key Conventions
 
-## LIFF Connection Status Indicators
-
-The home page shows these status indicators:
-
-| Indicator | Meaning |
-|-----------|---------|
-| ✓ LIFF Initialized | LIFF SDK loaded successfully |
-| ✓ Running in LINE | App opened in LINE app (not external browser) |
-| ✓ User Logged In | User authenticated via LINE |
-| Context Type | utou (1-on-1), group, room, or none |
-
----
-
-## Troubleshooting
-
-### "LIFF initialization failed"
-- Check LIFF ID in `.env.local`
-- Verify Endpoint URL matches deployment
-- Check browser console for errors
-
-### "Not running in LINE app"
-- This is expected in external browser
-- Open the LIFF URL in LINE mobile app instead
-- Test with [LIFF Inspector](https://liff.line.me/inspector)
-
-### "User not logged in"
-- Check LIFF app scopes (need `profile`, `openid`)
-- Clear LINE cache and try again
-- Verify LIFF app is published
-
-For more troubleshooting, see [LIFF Testing Guide](./LIFF_TESTING_GUIDE.md).
-
----
-
-## Next Steps
-
-1. ✅ Verify LIFF connection (current phase)
-2. ⏭️ Implement backend API server
-3. ⏭️ Add JWT token exchange to LiffProvider
-4. ⏭️ Build meeting creation UI
-5. ⏭️ Implement availability features
-6. ⏭️ Add Google Calendar sync
-7. ⏭️ Integrate AI suggestions
-
----
+- **Timezone:** All dates/times in GMT+7 (Asia/Bangkok). Dates as `YYYY-MM-DD`, time slots as `HH:MM`.
+- **JSON mapping:** Backend sends snake_case; frontend types use camelCase. Map at the consumption point.
+- **No custom navigation headers:** LIFF in LINE provides native back/close controls.
+- **Ngrok:** `apiHeaders.ts` auto-adds `ngrok-skip-browser-warning: true` when the API URL contains "ngrok".
+- **Cookie auth:** `credentials: "include"` on all fetch calls. No manual Authorization headers needed.
 
 ## Deployment
 
 ### Vercel (Recommended)
 
-1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard:
-   - `NEXT_PUBLIC_LIFF_ID`
-   - `NEXT_PUBLIC_LINE_CHANNEL_ID`
-3. Deploy automatically on push to main
+1. Connect GitHub repository to Vercel
+2. Set environment variables: `NEXT_PUBLIC_LIFF_ID`, `NEXT_PUBLIC_LINE_CHANNEL_ID`, `NEXT_PUBLIC_API_BASE_URL`
+3. Update LIFF Endpoint URL in LINE Developers Console to the Vercel deployment URL
 
-### Manual Deployment
+### Manual
 
 ```bash
 npm run build
 npm run start
 ```
 
----
+## Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| LIFF initialization failed | Verify `NEXT_PUBLIC_LIFF_ID` in `.env.local`; check LIFF Endpoint URL matches deployment |
+| Not running in LINE app | Expected in external browsers — open via `https://liff.line.me/YOUR-LIFF-ID` in LINE |
+| User not logged in | Check LIFF app scopes (`profile`, `openid`); verify LIFF app is published |
+| API calls failing | Ensure backend is running; check `NEXT_PUBLIC_API_BASE_URL`; verify CORS allows frontend origin |
 
 ## Resources
 
 - [LINE LIFF Documentation](https://developers.line.biz/en/docs/liff/overview/)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Tailwind CSS](https://tailwindcss.com/docs)
-- [LINE Developers Console](https://developers.line.biz/console/)
-
----
-
-## Contributing
-
-This is part of the AI Scheduling Assistant project. See the main technical spec for architecture details and development guidelines.
-
----
-
-## License
-
-[Your License Here]
+- [TanStack React Query](https://tanstack.com/query/latest)
