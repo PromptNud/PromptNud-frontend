@@ -39,7 +39,7 @@ class ApiClient {
   }
 
   // Meetings
-  async createMeeting(data: CreateMeetingRequest): Promise<Meeting> {
+  async createMeeting(data: CreateMeetingRequest) {
     const body = {
       title: data.title,
       line_group_id: data.lineGroupId,
@@ -52,18 +52,18 @@ class ApiClient {
       member_mode: data.memberMode,
       notes: data.notes,
     };
-    return this.fetch<Meeting>("/meetings", {
+    return this.fetch<{ data: Meeting }>("/meetings", {
       method: "POST",
       body: JSON.stringify(body),
     });
   }
 
-  async getMeeting(id: string): Promise<Meeting> {
-    return this.fetch<Meeting>(`/meetings/${id}`);
+  async getMeeting(id: string) {
+    return this.fetch<{ data: Meeting }>(`/meetings/${id}`);
   }
 
-  async getMeetingsByGroup(groupId: string): Promise<{ meetings: Meeting[] }> {
-    return this.fetch<{ meetings: Meeting[] }>(`/meetings/group/${groupId}`);
+  async getMeetingsByGroup(groupId: string) {
+    return this.fetch<{ data: Meeting[] }>(`/meetings/group/${groupId}`);
   }
 
   // Locations
