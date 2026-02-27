@@ -20,7 +20,20 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
     );
   }
 
-  if (error || !meeting) {
+  if (error) {
+    const message = error instanceof Error ? error.message : "";
+    const isNotFound = message.includes("404") || /not found/i.test(message);
+    console.error("[AvailabilityPage] Failed to load meeting:", error);
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-bg-light px-6">
+        <p className="text-sm text-gray-500">
+          {isNotFound ? "Meeting not found." : "Unable to load meeting."}
+        </p>
+      </div>
+    );
+  }
+
+  if (!meeting) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-bg-light px-6">
         <p className="text-sm text-gray-500">Meeting not found.</p>
