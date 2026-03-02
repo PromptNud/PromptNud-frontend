@@ -182,7 +182,6 @@ function CreateMeetingContent() {
   const [location, setLocation] = useState("");
   const [weekdaysSelected, setWeekdaysSelected] = useState(true);
   const [weekendsSelected, setWeekendsSelected] = useState(false);
-  const [selectedDays, setSelectedDays] = useState<string[]>(WEEKDAYS);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [dateRangeStart, setDateRangeStart] = useState<Date | null>(null);
   const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(null);
@@ -249,11 +248,11 @@ function CreateMeetingContent() {
     }
   };
 
-  useEffect(() => {
+  const selectedDays = useMemo(() => {
     const days: string[] = [];
     if (weekdaysSelected) days.push(...WEEKDAYS);
     if (weekendsSelected) days.push(...WEEKENDS);
-    setSelectedDays(days);
+    return days;
   }, [weekdaysSelected, weekendsSelected]);
 
   const toggleTimeSlot = (slot: string) => {
