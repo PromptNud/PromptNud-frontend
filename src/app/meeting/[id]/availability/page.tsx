@@ -9,6 +9,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const searchParams = useSearchParams();
   const googleError = searchParams.get("google_error");
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["meeting", meetingId],
@@ -17,11 +18,13 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
 
   const handleConnectGoogle = async () => {
     setIsConnecting(true);
+    setConnectError(null);
     try {
-      const res = await api.getGoogleAuthURL(meetingId);
-      window.location.href = res.data.auth_url;
+      const res = await api.getGoogleAuthUrl(meetingId);
+      window.location.href = res.data.authUrl;
     } catch (err) {
       console.error("[AvailabilityPage] Failed to get Google auth URL:", err);
+      setConnectError("Failed to start Google sign-in. Please try again.");
       setIsConnecting(false);
     }
   };
@@ -107,6 +110,9 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
             >
               {isConnecting ? "Connecting..." : "Connect Now"}
             </button>
+            {connectError && (
+              <p className="text-red-500 text-sm text-center mt-2">{connectError}</p>
+            )}
           </div>
 
           {/* Manual Selection Card */}
