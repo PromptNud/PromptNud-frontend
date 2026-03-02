@@ -67,10 +67,11 @@ class ApiClient {
   }
 
   // Google Calendar
-  async getGoogleAuthURL(meetingId: string) {
-    return this.fetch<{ data: { auth_url: string } }>(
-      `/users/google/auth-url?meeting_id=${meetingId}`
+  async getGoogleAuthUrl(meetingId: string) {
+    const res = await this.fetch<{ data: { auth_url: string } }>(
+      `/users/google/auth-url?meeting_id=${encodeURIComponent(meetingId)}`
     );
+    return { data: { authUrl: res.data.auth_url } };
   }
 
   // Locations

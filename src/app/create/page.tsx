@@ -577,7 +577,7 @@ function CreateMeetingContent() {
               </label>
               <div className="flex gap-2 w-full">
                 <button
-                  onClick={() => setWeekdaysSelected((prev) => !prev)}
+                  onClick={() => setWeekdaysSelected((prev) => prev && !weekendsSelected ? true : !prev)}
                   className={`flex-1 px-2 py-3 rounded-xl text-sm text-center transition-colors ${
                     weekdaysSelected
                       ? "bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm"
@@ -587,7 +587,7 @@ function CreateMeetingContent() {
                   Weekdays
                 </button>
                 <button
-                  onClick={() => setWeekendsSelected((prev) => !prev)}
+                  onClick={() => setWeekendsSelected((prev) => prev && !weekdaysSelected ? true : !prev)}
                   className={`flex-1 px-2 py-3 rounded-xl text-sm text-center transition-colors ${
                     weekendsSelected
                       ? "bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm"

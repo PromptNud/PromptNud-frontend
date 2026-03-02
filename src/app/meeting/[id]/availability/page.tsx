@@ -18,8 +18,8 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const handleConnectGoogle = async () => {
     setIsConnecting(true);
     try {
-      const res = await api.getGoogleAuthURL(meetingId);
-      window.location.href = res.data.auth_url;
+      const res = await api.getGoogleAuthUrl(meetingId);
+      window.location.href = res.data.authUrl;
     } catch (err) {
       console.error("[AvailabilityPage] Failed to get Google auth URL:", err);
       setIsConnecting(false);
