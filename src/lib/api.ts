@@ -66,13 +66,6 @@ class ApiClient {
     return this.fetch<{ data: Meeting[] }>(`/meetings/group/${groupId}`);
   }
 
-  // Google Calendar
-  async getGoogleAuthURL(meetingId: string) {
-    return this.fetch<{ data: { auth_url: string } }>(
-      `/users/google/auth-url?meeting_id=${meetingId}`
-    );
-  }
-
   // Locations
   async getLocations(): Promise<{
     data: { id: string; name: string; latitude: number; longitude: number }[];
