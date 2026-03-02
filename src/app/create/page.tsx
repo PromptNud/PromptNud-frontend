@@ -26,7 +26,6 @@ import type { CreateMeetingRequest } from "@/types/meeting";
 
 type MeetingType = "meals" | "cafe" | "sports" | "others";
 type LocationMode = "specify" | "decide_later" | "recommend";
-type DayPreset = "weekdays" | "weekends" | "customize";
 
 const MEETING_TYPES: { value: MeetingType; label: string; icon: string }[] = [
   { value: "meals", label: "Meals", icon: "restaurant" },
@@ -181,8 +180,8 @@ function CreateMeetingContent() {
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [locationMode, setLocationMode] = useState<LocationMode>("specify");
   const [location, setLocation] = useState("");
-  const [dayPreset, setDayPreset] = useState<DayPreset>("weekdays");
-  const [selectedDays, setSelectedDays] = useState<string[]>(WEEKDAYS);
+  const [weekdaysSelected, setWeekdaysSelected] = useState(true);
+  const [weekendsSelected, setWeekendsSelected] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [dateRangeStart, setDateRangeStart] = useState<Date | null>(null);
   const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(null);
@@ -249,17 +248,12 @@ function CreateMeetingContent() {
     }
   };
 
-  const handleDayPreset = (preset: DayPreset) => {
-    setDayPreset(preset);
-    if (preset === "weekdays") setSelectedDays(WEEKDAYS);
-    else if (preset === "weekends") setSelectedDays(WEEKENDS);
-  };
-
-  const toggleDay = (day: string) => {
-    setSelectedDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
-    );
-  };
+  const selectedDays = useMemo(() => {
+    const days: string[] = [];
+    if (weekdaysSelected) days.push(...WEEKDAYS);
+    if (weekendsSelected) days.push(...WEEKENDS);
+    return days;
+  }, [weekdaysSelected, weekendsSelected]);
 
   const toggleTimeSlot = (slot: string) => {
     setSelectedTimeSlots((prev) =>
@@ -582,9 +576,9 @@ function CreateMeetingContent() {
               </label>
               <div className="flex gap-2 w-full">
                 <button
-                  onClick={() => handleDayPreset("weekdays")}
+                  onClick={() => setWeekdaysSelected((prev) => !prev)}
                   className={`flex-1 px-2 py-3 rounded-xl text-sm text-center transition-colors ${
-                    dayPreset === "weekdays"
+                    weekdaysSelected
                       ? "bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm"
                       : "bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 border border-transparent"
                   }`}
@@ -592,46 +586,16 @@ function CreateMeetingContent() {
                   Weekdays
                 </button>
                 <button
-                  onClick={() => handleDayPreset("weekends")}
+                  onClick={() => setWeekendsSelected((prev) => !prev)}
                   className={`flex-1 px-2 py-3 rounded-xl text-sm text-center transition-colors ${
-                    dayPreset === "weekends"
+                    weekendsSelected
                       ? "bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm"
                       : "bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 border border-transparent"
                   }`}
                 >
                   Weekends
                 </button>
-                <button
-                  onClick={() => {
-                    setDayPreset("customize");
-                    setSelectedDays(ALL_DAYS);
-                  }}
-                  className={`flex-1 px-2 py-3 rounded-xl text-sm text-center transition-colors ${
-                    dayPreset === "customize"
-                      ? "bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm"
-                      : "bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 border border-transparent"
-                  }`}
-                >
-                  Customize
-                </button>
               </div>
-              {dayPreset === "customize" && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {ALL_DAYS.map((day) => (
-                    <button
-                      key={day}
-                      onClick={() => toggleDay(day)}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium capitalize transition-colors ${
-                        selectedDays.includes(day)
-                          ? "bg-primary/10 text-primary border border-primary/20"
-                          : "bg-gray-100 text-gray-500 border border-transparent"
-                      }`}
-                    >
-                      {day.slice(0, 3)}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Date Range */}

@@ -81,12 +81,6 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
         </h2>
 
         <div className="w-full space-y-6">
-          {googleError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl px-4 py-3">
-              Failed to connect Google Calendar. Please try again.
-            </div>
-          )}
-
           {/* Google Calendar Card */}
           <div className="bg-surface-light border-2 border-primary rounded-3xl p-6 flex flex-col items-center text-center shadow-xl shadow-primary/5">
             <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
@@ -103,12 +97,8 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
             <p className="text-gray-500 text-sm mb-6 leading-relaxed">
               AI will instantly find your free times
             </p>
-            <button
-              onClick={handleConnectGoogle}
-              disabled={isConnecting}
-              className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              {isConnecting ? "Connecting..." : "Connect Now"}
+            <button className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2">
+              Connect Now
             </button>
             {connectError && (
               <p className="text-red-500 text-sm text-center mt-2">{connectError}</p>
