@@ -97,8 +97,12 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
             <p className="text-gray-500 text-sm mb-6 leading-relaxed">
               AI will instantly find your free times
             </p>
-            <button className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2">
-              Connect Now
+            <button
+              onClick={handleConnectGoogle}
+              disabled={isConnecting}
+              className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {isConnecting ? "Connecting..." : "Connect Now"}
             </button>
             {connectError && (
               <p className="text-red-500 text-sm text-center mt-2">{connectError}</p>
