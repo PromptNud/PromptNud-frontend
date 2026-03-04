@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import liff from "@line/liff";
 import { api } from "@/lib/api";
 
 function AvailabilityContent({ meetingId }: { meetingId: string }) {
@@ -21,7 +22,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
     setConnectError(null);
     try {
       const res = await api.getGoogleAuthUrl(meetingId);
-      window.location.href = res.data.authUrl;
+      liff.openWindow({ url: res.data.authUrl, external: true });
     } catch (err) {
       console.error("[AvailabilityPage] Failed to get Google auth URL:", err);
       setConnectError("Failed to start Google sign-in. Please try again.");
