@@ -4,11 +4,13 @@ import { use, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import liff from "@line/liff";
+import { useLiff } from "@/hooks/useLiff";
 import { api } from "@/lib/api";
 
 function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const searchParams = useSearchParams();
   const googleError = searchParams.get("google_error");
+  const { isInitialized } = useLiff();
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
 
@@ -18,11 +20,17 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
   });
 
   const handleConnectGoogle = async () => {
+    if (!isInitialized) {
+      setConnectError("LIFF is not ready yet. Please wait and try again.");
+      return;
+    }
+
     setIsConnecting(true);
     setConnectError(null);
     try {
       const res = await api.getGoogleAuthUrl(meetingId);
       liff.openWindow({ url: res.data.authUrl, external: true });
+      setIsConnecting(false);
     } catch (err) {
       console.error("[AvailabilityPage] Failed to get Google auth URL:", err);
       setConnectError("Failed to start Google sign-in. Please try again.");
@@ -82,6 +90,12 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
         </h2>
 
         <div className="w-full space-y-6">
+          {googleError && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-700">
+              Google Calendar connection failed. Please try again.
+            </div>
+          )}
+
           {/* Google Calendar Card */}
           <div className="bg-surface-light border-2 border-primary rounded-3xl p-6 flex flex-col items-center text-center shadow-xl shadow-primary/5">
             <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
