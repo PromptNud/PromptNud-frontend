@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import liff from "@line/liff";
@@ -10,9 +10,30 @@ import { api } from "@/lib/api";
 function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const searchParams = useSearchParams();
   const googleError = searchParams.get("google_error");
-  const { isInitialized } = useLiff();
+  const { isInitialized, user } = useLiff();
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [hasJoined, setHasJoined] = useState(false);
+  const joiningRef = useRef(false);
+
+  // Auto-join meeting to link LINE user to invitee record
+  useEffect(() => {
+    if (!user || hasJoined || joiningRef.current) return;
+    joiningRef.current = true;
+    api
+      .joinMeeting(meetingId, user.userId, user.displayName)
+      .then(() => {
+        setHasJoined(true);
+      })
+      .catch((err) => {
+        // "already joined" means we're linked — treat as success
+        if (err instanceof Error && /already joined/i.test(err.message)) {
+          setHasJoined(true);
+        }
+        // Transient failure: allow retry on next render
+        joiningRef.current = false;
+      });
+  }, [user, meetingId, hasJoined]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["meeting", meetingId],
