@@ -67,11 +67,11 @@ class ApiClient {
   }
 
   // Join meeting (links LINE user to invitee record)
-  async joinMeeting(meetingId: string, lineUserID: string, displayName: string) {
+  async joinMeeting(meetingId: string, lineUserId: string, displayName: string) {
     return this.fetch<{ data: unknown }>(`/meetings/${meetingId}/join`, {
       method: "POST",
       body: JSON.stringify({
-        line_user_id: lineUserID,
+        line_user_id: lineUserId,
         display_name: displayName,
       }),
     });

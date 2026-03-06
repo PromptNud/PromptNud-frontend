@@ -13,16 +13,27 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const { isInitialized, user } = useLiff();
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
-  const joinAttempted = useRef(false);
+  const [hasJoined, setHasJoined] = useState(false);
+  const joiningRef = useRef(false);
 
   // Auto-join meeting to link LINE user to invitee record
   useEffect(() => {
-    if (!user || joinAttempted.current) return;
-    joinAttempted.current = true;
-    api.joinMeeting(meetingId, user.userId, user.displayName).catch(() => {
-      // Ignore errors — user may already be joined
-    });
-  }, [user, meetingId]);
+    if (!user || hasJoined || joiningRef.current) return;
+    joiningRef.current = true;
+    api
+      .joinMeeting(meetingId, user.userId, user.displayName)
+      .then(() => {
+        setHasJoined(true);
+      })
+      .catch((err) => {
+        // "already joined" means we're linked — treat as success
+        if (err instanceof Error && /already joined/i.test(err.message)) {
+          setHasJoined(true);
+        }
+        // Transient failure: allow retry on next render
+        joiningRef.current = false;
+      });
+  }, [user, meetingId, hasJoined]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["meeting", meetingId],
