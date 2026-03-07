@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import liff from "@line/liff";
 import { useLiff } from "@/hooks/useLiff";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 
 function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const searchParams = useSearchParams();
@@ -41,9 +41,14 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const { data: meData, error: meError, isLoading: meLoading } = useQuery({
     queryKey: ["me"],
     queryFn: () => api.getMe(),
+    enabled: isInitialized,
   });
 
   const hasGoogleCalendar = meData?.data?.hasGoogleCalendar ?? false;
+  const meReady = !meLoading && !meError;
+  const showSyncButton = meReady && hasGoogleCalendar && !needsReconnect && !isSynced;
+  const showSyncedState = meReady && hasGoogleCalendar && !needsReconnect && isSynced;
+  const showConnectButton = meReady && (!hasGoogleCalendar || needsReconnect);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["meeting", meetingId],
@@ -69,11 +74,6 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
     }
   };
 
-  const handleSyncAgain = () => {
-    setIsSynced(false);
-    handleSyncCalendar();
-  };
-
   const handleSyncCalendar = async () => {
     setIsSyncing(true);
     setConnectError(null);
@@ -82,8 +82,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
       setIsSynced(true);
     } catch (err) {
       console.error("[AvailabilityPage] Sync failed:", err);
-      const message = err instanceof Error ? err.message : "";
-      if (/no longer valid|reconnect/i.test(message)) {
+      if (err instanceof ApiError && err.status === 422) {
         setNeedsReconnect(true);
       } else {
         setConnectError("Failed to sync calendar. Please try again.");
@@ -91,6 +90,11 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
     } finally {
       setIsSyncing(false);
     }
+  };
+
+  const handleSyncAgain = () => {
+    setIsSynced(false);
+    handleSyncCalendar();
   };
 
   const meeting = data?.data;
@@ -187,7 +191,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
               </>
             )}
 
-            {!meLoading && !meError && hasGoogleCalendar && !needsReconnect && !isSynced && (
+            {showSyncButton && (
               <>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
                   Google Calendar Connected
@@ -205,7 +209,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
               </>
             )}
 
-            {!meLoading && !meError && hasGoogleCalendar && !needsReconnect && isSynced && (
+            {showSyncedState && (
               <>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
                   Calendar Synced
@@ -223,7 +227,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
               </>
             )}
 
-            {!meLoading && !meError && (!hasGoogleCalendar || needsReconnect) && (
+            {showConnectButton && (
               <>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
                   {needsReconnect ? "Reconnect Google Calendar" : "Connect Google Calendar"}
