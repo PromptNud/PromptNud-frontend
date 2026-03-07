@@ -38,7 +38,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
       });
   }, [user, meetingId, hasJoined]);
 
-  const { data: meData } = useQuery({
+  const { data: meData, error: meError, isLoading: meLoading } = useQuery({
     queryKey: ["me"],
     queryFn: () => api.getMe(),
   });
@@ -67,6 +67,11 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
       setConnectError("Failed to start Google sign-in. Please try again.");
       setIsConnecting(false);
     }
+  };
+
+  const handleSyncAgain = () => {
+    setIsSynced(false);
+    handleSyncCalendar();
   };
 
   const handleSyncCalendar = async () => {
@@ -157,7 +162,32 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
               </span>
             </div>
 
-            {hasGoogleCalendar && !needsReconnect && !isSynced && (
+            {meLoading && (
+              <>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Google Calendar
+                </h3>
+                <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+                  Checking connection status...
+                </p>
+                <div className="w-full flex justify-center py-3.5">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                </div>
+              </>
+            )}
+
+            {!meLoading && meError && (
+              <>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Google Calendar
+                </h3>
+                <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+                  Unable to check calendar status. Please reload the page.
+                </p>
+              </>
+            )}
+
+            {!meLoading && !meError && hasGoogleCalendar && !needsReconnect && !isSynced && (
               <>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
                   Google Calendar Connected
@@ -175,7 +205,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
               </>
             )}
 
-            {hasGoogleCalendar && !needsReconnect && isSynced && (
+            {!meLoading && !meError && hasGoogleCalendar && !needsReconnect && isSynced && (
               <>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
                   Calendar Synced
@@ -184,7 +214,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
                   Your free times have been updated
                 </p>
                 <button
-                  onClick={() => { setIsSynced(false); handleSyncCalendar(); }}
+                  onClick={handleSyncAgain}
                   disabled={isSyncing}
                   className="w-full border-2 border-primary text-primary hover:bg-primary/5 font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-60"
                 >
@@ -193,7 +223,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
               </>
             )}
 
-            {(!hasGoogleCalendar || needsReconnect) && (
+            {!meLoading && !meError && (!hasGoogleCalendar || needsReconnect) && (
               <>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
                   {needsReconnect ? "Reconnect Google Calendar" : "Connect Google Calendar"}
