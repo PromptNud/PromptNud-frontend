@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import liff from "@line/liff";
 import { useLiff } from "@/hooks/useLiff";
@@ -9,12 +9,12 @@ import { api, ApiError } from "@/lib/api";
 
 function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const googleError = searchParams.get("google_error");
   const { isInitialized, user } = useLiff();
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isSynced, setIsSynced] = useState(false);
   const [needsReconnect, setNeedsReconnect] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
   const joiningRef = useRef(false);
@@ -47,8 +47,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const hasGoogleCalendar = meData?.data?.hasGoogleCalendar ?? false;
   const isCheckingCalendarStatus = !isInitialized || meLoading;
   const meReady = !isCheckingCalendarStatus && !meError;
-  const showSyncButton = meReady && hasGoogleCalendar && !needsReconnect && !isSynced;
-  const showSyncedState = meReady && hasGoogleCalendar && !needsReconnect && isSynced;
+  const showSyncButton = meReady && hasGoogleCalendar && !needsReconnect;
   const showConnectButton = meReady && (!hasGoogleCalendar || needsReconnect);
 
   const { data, isLoading, error } = useQuery({
@@ -79,8 +78,14 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
     setIsSyncing(true);
     setConnectError(null);
     try {
-      await api.syncGoogleCalendar(meetingId);
-      setIsSynced(true);
+      const res = await api.syncGoogleCalendar(meetingId);
+      const busySlots = res.data?.busy_slots ?? [];
+      // Store busy slots in sessionStorage for the grid page
+      sessionStorage.setItem(
+        `busySlots_${meetingId}`,
+        JSON.stringify(busySlots)
+      );
+      router.push(`/meeting/${meetingId}/availability/select?mode=calendar`);
     } catch (err) {
       console.error("[AvailabilityPage] Sync failed:", err);
       if (err instanceof ApiError && err.status === 422) {
@@ -91,11 +96,6 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
     } finally {
       setIsSyncing(false);
     }
-  };
-
-  const handleSyncAgain = () => {
-    setIsSynced(false);
-    handleSyncCalendar();
   };
 
   const meeting = data?.data;
@@ -210,24 +210,6 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
               </>
             )}
 
-            {showSyncedState && (
-              <>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  Calendar Synced
-                </h3>
-                <p className="text-green-600 text-sm mb-6 leading-relaxed">
-                  Your free times have been updated
-                </p>
-                <button
-                  onClick={handleSyncAgain}
-                  disabled={isSyncing}
-                  className="w-full border-2 border-primary text-primary hover:bg-primary/5 font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-                >
-                  {isSyncing ? "Syncing..." : "Sync Again"}
-                </button>
-              </>
-            )}
-
             {showConnectButton && (
               <>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
@@ -266,7 +248,10 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
             <p className="text-gray-500 text-sm mb-6 leading-relaxed">
               Pick days and times yourself
             </p>
-            <button className="w-full border-2 border-primary text-primary hover:bg-primary/5 font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2">
+            <button
+              onClick={() => router.push(`/meeting/${meetingId}/availability/select?mode=manual`)}
+              className="w-full border-2 border-primary text-primary hover:bg-primary/5 font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2"
+            >
               Choose Times
             </button>
           </div>

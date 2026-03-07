@@ -1,5 +1,5 @@
 import { createApiHeaders, getApiBaseUrl } from "@/utils/apiHeaders";
-import type { Meeting, CreateMeetingRequest } from "@/types/meeting";
+import type { Meeting, CreateMeetingRequest, AvailableSlot, BusySlot } from "@/types/meeting";
 
 export class ApiError extends Error {
   constructor(
@@ -99,10 +99,32 @@ class ApiClient {
   }
 
   async syncGoogleCalendar(meetingId: string) {
-    return this.fetch<{ data: { synced: boolean } }>("/users/google/sync-calendar", {
+    return this.fetch<{ data: { synced: boolean; busy_slots?: BusySlot[] } }>("/users/google/sync-calendar", {
       method: "POST",
       body: JSON.stringify({ meeting_id: meetingId }),
     });
+  }
+
+  // Availability
+  async submitAvailability(meetingId: string, slots: AvailableSlot[], source: string) {
+    return this.fetch<{ data: { message: string } }>(`/meetings/${meetingId}/availability`, {
+      method: "PUT",
+      body: JSON.stringify({ available_slots: slots, source }),
+    });
+  }
+
+  async getUserAvailability(meetingId: string) {
+    return this.fetch<{
+      data: {
+        id: string;
+        meeting_id: string;
+        user_id: string;
+        available_slots: AvailableSlot[];
+        source: string;
+        created_at: string;
+        updated_at: string;
+      } | null;
+    }>(`/meetings/${meetingId}/availability`);
   }
 
   // Locations
