@@ -45,7 +45,8 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
   });
 
   const hasGoogleCalendar = meData?.data?.hasGoogleCalendar ?? false;
-  const meReady = !meLoading && !meError;
+  const isCheckingCalendarStatus = !isInitialized || meLoading;
+  const meReady = !isCheckingCalendarStatus && !meError;
   const showSyncButton = meReady && hasGoogleCalendar && !needsReconnect && !isSynced;
   const showSyncedState = meReady && hasGoogleCalendar && !needsReconnect && isSynced;
   const showConnectButton = meReady && (!hasGoogleCalendar || needsReconnect);
@@ -166,7 +167,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
               </span>
             </div>
 
-            {meLoading && (
+            {isCheckingCalendarStatus && (
               <>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
                   Google Calendar
@@ -180,7 +181,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
               </>
             )}
 
-            {!meLoading && meError && (
+            {!isCheckingCalendarStatus && meError && (
               <>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
                   Google Calendar
