@@ -1,6 +1,16 @@
 import { createApiHeaders, getApiBaseUrl } from "@/utils/apiHeaders";
 import type { Meeting, CreateMeetingRequest } from "@/types/meeting";
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 class ApiClient {
   private async fetch<T>(
     endpoint: string,
@@ -19,7 +29,10 @@ class ApiClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || `Request failed: ${response.status}`);
+      throw new ApiError(
+        error.message || `Request failed: ${response.status}`,
+        response.status,
+      );
     }
 
     return response.json();
@@ -83,6 +96,13 @@ class ApiClient {
       `/users/google/auth-url?meeting_id=${encodeURIComponent(meetingId)}`
     );
     return { data: { authUrl: res.data.auth_url } };
+  }
+
+  async syncGoogleCalendar(meetingId: string) {
+    return this.fetch<{ data: { synced: boolean } }>("/users/google/sync-calendar", {
+      method: "POST",
+      body: JSON.stringify({ meeting_id: meetingId }),
+    });
   }
 
   // Locations
