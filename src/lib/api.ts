@@ -85,6 +85,13 @@ class ApiClient {
     return { data: { authUrl: res.data.auth_url } };
   }
 
+  async syncGoogleCalendar(meetingId: string) {
+    return this.fetch<{ data: { synced: boolean } }>("/users/google/sync-calendar", {
+      method: "POST",
+      body: JSON.stringify({ meeting_id: meetingId }),
+    });
+  }
+
   // Locations
   async getLocations(): Promise<{
     data: { id: string; name: string; latitude: number; longitude: number }[];

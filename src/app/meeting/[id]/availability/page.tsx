@@ -13,6 +13,9 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const { isInitialized, user } = useLiff();
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSynced, setIsSynced] = useState(false);
+  const [needsReconnect, setNeedsReconnect] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
   const joiningRef = useRef(false);
 
@@ -35,6 +38,13 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
       });
   }, [user, meetingId, hasJoined]);
 
+  const { data: meData } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => api.getMe(),
+  });
+
+  const hasGoogleCalendar = meData?.data?.hasGoogleCalendar ?? false;
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["meeting", meetingId],
     queryFn: () => api.getMeeting(meetingId),
@@ -56,6 +66,25 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
       console.error("[AvailabilityPage] Failed to get Google auth URL:", err);
       setConnectError("Failed to start Google sign-in. Please try again.");
       setIsConnecting(false);
+    }
+  };
+
+  const handleSyncCalendar = async () => {
+    setIsSyncing(true);
+    setConnectError(null);
+    try {
+      await api.syncGoogleCalendar(meetingId);
+      setIsSynced(true);
+    } catch (err) {
+      console.error("[AvailabilityPage] Sync failed:", err);
+      const message = err instanceof Error ? err.message : "";
+      if (/no longer valid|reconnect/i.test(message)) {
+        setNeedsReconnect(true);
+      } else {
+        setConnectError("Failed to sync calendar. Please try again.");
+      }
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -127,19 +156,63 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
                 calendar_month
               </span>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              Connect Google Calendar
-            </h3>
-            <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-              AI will instantly find your free times
-            </p>
-            <button
-              onClick={handleConnectGoogle}
-              disabled={isConnecting}
-              className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              {isConnecting ? "Connecting..." : "Connect Now"}
-            </button>
+
+            {hasGoogleCalendar && !needsReconnect && !isSynced && (
+              <>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Google Calendar Connected
+                </h3>
+                <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+                  Sync your calendar to find free times
+                </p>
+                <button
+                  onClick={handleSyncCalendar}
+                  disabled={isSyncing}
+                  className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {isSyncing ? "Syncing..." : "Sync Calendar"}
+                </button>
+              </>
+            )}
+
+            {hasGoogleCalendar && !needsReconnect && isSynced && (
+              <>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Calendar Synced
+                </h3>
+                <p className="text-green-600 text-sm mb-6 leading-relaxed">
+                  Your free times have been updated
+                </p>
+                <button
+                  onClick={() => { setIsSynced(false); handleSyncCalendar(); }}
+                  disabled={isSyncing}
+                  className="w-full border-2 border-primary text-primary hover:bg-primary/5 font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {isSyncing ? "Syncing..." : "Sync Again"}
+                </button>
+              </>
+            )}
+
+            {(!hasGoogleCalendar || needsReconnect) && (
+              <>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  {needsReconnect ? "Reconnect Google Calendar" : "Connect Google Calendar"}
+                </h3>
+                <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+                  {needsReconnect
+                    ? "Your previous connection expired. Please reconnect."
+                    : "AI will instantly find your free times"}
+                </p>
+                <button
+                  onClick={handleConnectGoogle}
+                  disabled={isConnecting}
+                  className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {isConnecting ? "Connecting..." : needsReconnect ? "Reconnect" : "Connect Now"}
+                </button>
+              </>
+            )}
+
             {connectError && (
               <p className="text-red-500 text-sm text-center mt-2">{connectError}</p>
             )}
