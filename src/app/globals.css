@@ -14,6 +14,8 @@
   --color-primary-dark: #d66c00;
   --color-bg-light: #f8f7f5;
   --color-surface-light: #ffffff;
+  --color-grid-default: #F5F3EE;
+  --color-grid-selected: #4ADE80;
 }
 
 @media (prefers-color-scheme: dark) {
