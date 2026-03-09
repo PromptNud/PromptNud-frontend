@@ -79,7 +79,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
     setConnectError(null);
     try {
       const res = await api.syncGoogleCalendar(meetingId);
-      const busySlots = res.data?.busy_slots ?? [];
+      const busySlots = res.data?.busySlots ?? [];
       // Store busy slots in sessionStorage for the grid page
       sessionStorage.setItem(
         `busySlots_${meetingId}`,

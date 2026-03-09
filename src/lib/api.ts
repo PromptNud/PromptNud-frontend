@@ -94,8 +94,35 @@ function mapUser(raw: UserRaw) {
     id: raw.id,
     lineUserId: raw.line_user_id,
     displayName: raw.line_display_name,
-    picture: raw.picture,
+    pictureUrl: raw.picture,
     hasGoogleCalendar: raw.hasGoogleCalendar,
+  };
+}
+
+interface SyncCalendarResponse {
+  synced: boolean;
+  busySlots: BusySlot[];
+}
+
+interface UserAvailability {
+  id: string;
+  meetingId: string;
+  userId: string;
+  availableSlots: AvailableSlot[];
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function mapUserAvailability(raw: UserAvailabilityRaw): UserAvailability {
+  return {
+    id: raw.id,
+    meetingId: raw.meeting_id,
+    userId: raw.user_id,
+    availableSlots: raw.available_slots,
+    source: raw.source,
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
   };
 }
 
@@ -194,11 +221,17 @@ class ApiClient {
     return { data: { authUrl: res.data.auth_url } };
   }
 
-  async syncGoogleCalendar(meetingId: string) {
-    return this.fetch<{ data: { synced: boolean; busy_slots?: BusySlot[] } }>("/users/google/sync-calendar", {
+  async syncGoogleCalendar(meetingId: string): Promise<{ data: SyncCalendarResponse }> {
+    const res = await this.fetch<{ data: { synced: boolean; busy_slots?: BusySlot[] } }>("/users/google/sync-calendar", {
       method: "POST",
       body: JSON.stringify({ meeting_id: meetingId }),
     });
+    return {
+      data: {
+        synced: res.data.synced,
+        busySlots: res.data.busy_slots ?? [],
+      },
+    };
   }
 
   // Availability
@@ -209,8 +242,9 @@ class ApiClient {
     });
   }
 
-  async getUserAvailability(meetingId: string) {
-    return this.fetch<{ data: UserAvailabilityRaw | null }>(`/meetings/${meetingId}/availability`);
+  async getUserAvailability(meetingId: string): Promise<{ data: UserAvailability | null }> {
+    const res = await this.fetch<{ data: UserAvailabilityRaw | null }>(`/meetings/${meetingId}/availability`);
+    return { data: res.data ? mapUserAvailability(res.data) : null };
   }
 
   // Locations

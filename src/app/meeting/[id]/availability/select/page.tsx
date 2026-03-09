@@ -99,8 +99,14 @@ function SelectContent({ meetingId }: { meetingId: string }) {
 
     if (mode === "calendar") {
       // Pre-fill from calendar: all non-busy cells are selected
-      const raw = sessionStorage.getItem(`busySlots_${meetingId}`);
-      const busySlots: BusySlot[] = raw ? JSON.parse(raw) : [];
+      let busySlots: BusySlot[] = [];
+      try {
+        const raw = sessionStorage.getItem(`busySlots_${meetingId}`);
+        busySlots = raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        console.warn("[SelectPage] Failed to parse busySlots from sessionStorage:", e);
+        sessionStorage.removeItem(`busySlots_${meetingId}`);
+      }
       const allDates = meeting.selectedDates ?? [];
       const allHours = generateHours(meeting.timeSlots ?? []);
       const pre = new Set<string>();
@@ -118,9 +124,9 @@ function SelectContent({ meetingId }: { meetingId: string }) {
       api
         .getUserAvailability(meetingId)
         .then((res) => {
-          if (res.data?.available_slots) {
+          if (res.data?.availableSlots) {
             const prev = new Set<string>();
-            for (const s of res.data.available_slots) {
+            for (const s of res.data.availableSlots) {
               prev.add(`${s.date}|${s.hour}`);
             }
             setSelected(prev);
@@ -194,7 +200,7 @@ function SelectContent({ meetingId }: { meetingId: string }) {
     setSyncError(null);
     try {
       const res = await api.syncGoogleCalendar(meetingId);
-      const busySlots: BusySlot[] = res.data?.busy_slots ?? [];
+      const busySlots: BusySlot[] = res.data?.busySlots ?? [];
       const allDates = meeting?.selectedDates ?? [];
       const allHours = generateHours(meeting?.timeSlots ?? []);
       const pre = new Set<string>();
@@ -225,6 +231,7 @@ function SelectContent({ meetingId }: { meetingId: string }) {
         return { date, hour };
       });
       await api.submitAvailability(meetingId, slots, mode === "calendar" ? "calendar" : "manual");
+      sessionStorage.removeItem(`busySlots_${meetingId}`);
       router.push(`/meeting/${meetingId}/availability`);
     } catch (err) {
       console.error("[SelectPage] Submit failed:", err);
