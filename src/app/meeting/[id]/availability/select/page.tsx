@@ -69,8 +69,10 @@ function SelectContent({ meetingId }: { meetingId: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeWeek, setActiveWeek] = useState(0);
   const [initialized, setInitialized] = useState(false);
+  const sourceRef = useRef<"manual" | "calendar">(mode === "calendar" ? "calendar" : "manual");
 
   // Touch drag state
   const isDragging = useRef(false);
@@ -98,26 +100,27 @@ function SelectContent({ meetingId }: { meetingId: string }) {
     if (!meeting || initialized) return;
 
     if (mode === "calendar") {
-      // Pre-fill from calendar: all non-busy cells are selected
-      let busySlots: BusySlot[] = [];
-      try {
-        const raw = sessionStorage.getItem(`busySlots_${meetingId}`);
-        busySlots = raw ? JSON.parse(raw) : [];
-      } catch (e) {
-        console.warn("[SelectPage] Failed to parse busySlots from sessionStorage:", e);
-        sessionStorage.removeItem(`busySlots_${meetingId}`);
-      }
-      const allDates = meeting.selectedDates ?? [];
-      const allHours = generateHours(meeting.timeSlots ?? []);
-      const pre = new Set<string>();
-      for (const date of allDates) {
-        for (const hour of allHours) {
-          if (!isBusyAt(date, hour, busySlots)) {
-            pre.add(`${date}|${hour}`);
+      // Pre-fill from calendar: select non-busy cells only when cached data exists
+      const raw = sessionStorage.getItem(`busySlots_${meetingId}`);
+      if (raw !== null) {
+        try {
+          const busySlots: BusySlot[] = JSON.parse(raw);
+          const allDates = meeting.selectedDates ?? [];
+          const allHours = generateHours(meeting.timeSlots ?? []);
+          const pre = new Set<string>();
+          for (const date of allDates) {
+            for (const hour of allHours) {
+              if (!isBusyAt(date, hour, busySlots)) {
+                pre.add(`${date}|${hour}`);
+              }
+            }
           }
+          setSelected(pre);
+        } catch (e) {
+          console.warn("[SelectPage] Failed to parse busySlots from sessionStorage:", e);
+          sessionStorage.removeItem(`busySlots_${meetingId}`);
         }
       }
-      setSelected(pre);
       setInitialized(true);
     } else {
       // Manual mode: load previously saved availability
@@ -132,8 +135,9 @@ function SelectContent({ meetingId }: { meetingId: string }) {
             setSelected(prev);
           }
         })
-        .catch(() => {
-          // No saved data, start empty
+        .catch((err) => {
+          console.error("[SelectPage] Failed to load availability:", err);
+          setLoadError("Failed to load saved availability.");
         })
         .finally(() => setInitialized(true));
     }
@@ -212,6 +216,7 @@ function SelectContent({ meetingId }: { meetingId: string }) {
         }
       }
       setSelected(pre);
+      sourceRef.current = "calendar";
     } catch (err) {
       if (err instanceof ApiError && err.status === 422) {
         setSyncError("Calendar access was revoked. Please reconnect Google Calendar.");
@@ -230,7 +235,7 @@ function SelectContent({ meetingId }: { meetingId: string }) {
         const [date, hour] = key.split("|");
         return { date, hour };
       });
-      await api.submitAvailability(meetingId, slots, mode === "calendar" ? "calendar" : "manual");
+      await api.submitAvailability(meetingId, slots, sourceRef.current);
       sessionStorage.removeItem(`busySlots_${meetingId}`);
       router.push(`/meeting/${meetingId}/availability`);
     } catch (err) {
@@ -279,6 +284,9 @@ function SelectContent({ meetingId }: { meetingId: string }) {
           <p className="text-sm text-gray-500 mt-1">
             Tap or drag across the grid to select when you&apos;re available. Green = free.
           </p>
+          {loadError && (
+            <p className="text-amber-600 text-sm mt-2">{loadError}</p>
+          )}
         </div>
 
         {/* Week tabs */}
@@ -344,7 +352,10 @@ function SelectContent({ meetingId }: { meetingId: string }) {
                     return (
                       <div
                         key={key}
-                        className={`h-7 w-[60px] rounded cursor-pointer select-none touch-none ${
+                        role="gridcell"
+                        tabIndex={0}
+                        aria-selected={isSelected}
+                        className={`h-7 w-[60px] rounded cursor-pointer select-none touch-none outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                           isSelected
                             ? "bg-grid-selected shadow-sm"
                             : "bg-grid-default hover:opacity-80"
@@ -354,6 +365,12 @@ function SelectContent({ meetingId }: { meetingId: string }) {
                           handlePointerDown(key);
                         }}
                         onPointerEnter={() => handlePointerEnter(key)}
+                        onKeyDown={(e) => {
+                          if (e.key === " " || e.key === "Enter") {
+                            e.preventDefault();
+                            handlePointerDown(key);
+                          }
+                        }}
                       />
                     );
                   })

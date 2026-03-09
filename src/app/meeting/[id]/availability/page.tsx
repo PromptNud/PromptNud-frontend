@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import liff from "@line/liff";
 import { useLiff } from "@/hooks/useLiff";
 import { api, ApiError } from "@/lib/api";
@@ -10,6 +10,7 @@ import { api, ApiError } from "@/lib/api";
 function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const googleError = searchParams.get("google_error");
   const { isInitialized, user } = useLiff();
   const [isConnecting, setIsConnecting] = useState(false);
@@ -47,8 +48,8 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const hasGoogleCalendar = meData?.data?.hasGoogleCalendar ?? false;
   const isCheckingCalendarStatus = !isInitialized || meLoading;
   const meReady = !isCheckingCalendarStatus && !meError;
-  const showSyncButton = meReady && hasGoogleCalendar && !needsReconnect;
-  const showConnectButton = meReady && (!hasGoogleCalendar || needsReconnect);
+  const showSyncButton = meReady && hasGoogleCalendar;
+  const showConnectButton = meReady && !hasGoogleCalendar;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["meeting", meetingId],
@@ -90,6 +91,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
       console.error("[AvailabilityPage] Sync failed:", err);
       if (err instanceof ApiError && err.status === 422) {
         setNeedsReconnect(true);
+        queryClient.invalidateQueries({ queryKey: ["me"] });
       } else {
         setConnectError("Failed to sync calendar. Please try again.");
       }
