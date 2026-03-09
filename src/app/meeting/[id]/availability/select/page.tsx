@@ -3,7 +3,7 @@
 import { use, useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { format, parse, getDay, getISOWeek } from "date-fns";
+import { format, parse, getDay, getISOWeek, getISOWeekYear } from "date-fns";
 import { api, ApiError } from "@/lib/api";
 import type { AvailableSlot, BusySlot } from "@/types/meeting";
 
@@ -22,21 +22,24 @@ function generateHours(timeSlots: { start: string; end: string }[]): string[] {
   return Array.from(hourSet).sort();
 }
 
-/** Group dates into calendar weeks */
+/** Group dates into calendar weeks (using both ISO week number and ISO week year) */
 function groupByWeek(dates: string[]): string[][] {
   const sorted = [...dates].sort();
   const weeks: string[][] = [];
   let currentWeek: string[] = [];
   let currentWeekNum: number | null = null;
+  let currentWeekYear: number | null = null;
 
   for (const d of sorted) {
     const parsed = parse(d, "yyyy-MM-dd", new Date());
     const weekNum = getISOWeek(parsed);
-    if (currentWeekNum !== null && weekNum !== currentWeekNum) {
+    const weekYear = getISOWeekYear(parsed);
+    if (currentWeekNum !== null && (weekNum !== currentWeekNum || weekYear !== currentWeekYear)) {
       weeks.push(currentWeek);
       currentWeek = [];
     }
     currentWeekNum = weekNum;
+    currentWeekYear = weekYear;
     currentWeek.push(d);
   }
   if (currentWeek.length > 0) weeks.push(currentWeek);
@@ -70,6 +73,7 @@ function SelectContent({ meetingId }: { meetingId: string }) {
   const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [activeWeek, setActiveWeek] = useState(0);
   const [initialized, setInitialized] = useState(false);
   const sourceRef = useRef<"manual" | "calendar">(mode === "calendar" ? "calendar" : "manual");
@@ -136,6 +140,8 @@ function SelectContent({ meetingId }: { meetingId: string }) {
           }
         })
         .catch((err) => {
+          // 404 means no saved availability — not an error
+          if (err instanceof ApiError && err.status === 404) return;
           console.error("[SelectPage] Failed to load availability:", err);
           setLoadError("Failed to load saved availability.");
         })
@@ -230,6 +236,7 @@ function SelectContent({ meetingId }: { meetingId: string }) {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       const slots: AvailableSlot[] = Array.from(selected).map((key) => {
         const [date, hour] = key.split("|");
@@ -240,7 +247,7 @@ function SelectContent({ meetingId }: { meetingId: string }) {
       router.push(`/meeting/${meetingId}/availability`);
     } catch (err) {
       console.error("[SelectPage] Submit failed:", err);
-      alert("Failed to submit availability. Please try again.");
+      setSubmitError("Failed to submit availability. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -412,6 +419,9 @@ function SelectContent({ meetingId }: { meetingId: string }) {
 
       {/* Fixed footer */}
       <footer className="absolute bottom-0 left-0 w-full bg-surface-light/95 backdrop-blur-md border-t border-gray-200 p-4 pb-8 z-30">
+        {submitError && (
+          <p className="text-red-500 text-sm text-center mb-2">{submitError}</p>
+        )}
         <button
           onClick={handleSubmit}
           disabled={isSubmitting}
