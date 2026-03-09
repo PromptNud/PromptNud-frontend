@@ -1,6 +1,106 @@
 import { createApiHeaders, getApiBaseUrl } from "@/utils/apiHeaders";
 import type { Meeting, CreateMeetingRequest, AvailableSlot, BusySlot } from "@/types/meeting";
 
+// --- Raw snake_case response types matching backend JSON ---
+
+interface MeetingRaw {
+  id: string;
+  title: string;
+  organizer_user_id: string;
+  line_group_id: string;
+  status: string;
+  type: string;
+  duration_minutes: number;
+  location_mode: string;
+  location?: string;
+  selected_dates: string[];
+  time_slots: { start: string; end: string }[];
+  member_mode: string;
+  member_line_user_ids?: string[];
+  notes?: string;
+  datetime_start?: string;
+  datetime_end?: string;
+  invitees?: InviteeRaw[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface InviteeRaw {
+  id: string;
+  user_id?: string;
+  line_user_id: string;
+  display_name: string;
+  status: string;
+  created_at: string;
+}
+
+interface UserRaw {
+  id: string;
+  line_user_id: string;
+  line_display_name: string;
+  picture?: string;
+  hasGoogleCalendar: boolean; // backend already sends this in camelCase
+}
+
+interface UserAvailabilityRaw {
+  id: string;
+  meeting_id: string;
+  user_id: string;
+  available_slots: AvailableSlot[];
+  source: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Mapping helpers ---
+
+function mapMeeting(raw: MeetingRaw): Meeting {
+  return {
+    id: raw.id,
+    title: raw.title,
+    organizerUserId: raw.organizer_user_id,
+    lineGroupId: raw.line_group_id,
+    status: raw.status,
+    type: raw.type,
+    durationMinutes: raw.duration_minutes,
+    locationMode: raw.location_mode,
+    location: raw.location,
+    selectedDates: raw.selected_dates ?? [],
+    timeSlots: raw.time_slots ?? [],
+    memberMode: raw.member_mode,
+    memberLineUserIds: raw.member_line_user_ids,
+    notes: raw.notes,
+    datetimeStart: raw.datetime_start,
+    datetimeEnd: raw.datetime_end,
+    invitees: raw.invitees?.map(mapInvitee),
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
+  };
+}
+
+function mapInvitee(raw: InviteeRaw) {
+  return {
+    id: raw.id,
+    userId: raw.user_id,
+    lineUserId: raw.line_user_id,
+    displayName: raw.display_name,
+    status: raw.status,
+    createdAt: raw.created_at,
+  };
+}
+
+function mapUser(raw: UserRaw) {
+  return {
+    id: raw.id,
+    lineUserId: raw.line_user_id,
+    displayName: raw.line_display_name,
+    picture: raw.picture,
+    hasGoogleCalendar: raw.hasGoogleCalendar,
+  };
+}
+
+// --- API client ---
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -40,15 +140,8 @@ class ApiClient {
 
   // User
   async getMe() {
-    return this.fetch<{
-      data: {
-        id: string;
-        line_user_id: string;
-        line_display_name: string;
-        picture?: string;
-        hasGoogleCalendar: boolean;
-      };
-    }>("/users/me");
+    const res = await this.fetch<{ data: UserRaw }>("/users/me");
+    return { data: mapUser(res.data) };
   }
 
   // Meetings
@@ -65,18 +158,21 @@ class ApiClient {
       member_mode: data.memberMode,
       notes: data.notes,
     };
-    return this.fetch<{ data: Meeting }>("/meetings", {
+    const res = await this.fetch<{ data: MeetingRaw }>("/meetings", {
       method: "POST",
       body: JSON.stringify(body),
     });
+    return { data: mapMeeting(res.data) };
   }
 
   async getMeeting(id: string) {
-    return this.fetch<{ data: Meeting }>(`/meetings/${id}`);
+    const res = await this.fetch<{ data: MeetingRaw }>(`/meetings/${id}`);
+    return { data: mapMeeting(res.data) };
   }
 
   async getMeetingsByGroup(groupId: string) {
-    return this.fetch<{ data: Meeting[] }>(`/meetings/group/${groupId}`);
+    const res = await this.fetch<{ data: MeetingRaw[] }>(`/meetings/group/${groupId}`);
+    return { data: res.data.map(mapMeeting) };
   }
 
   // Join meeting (links LINE user to invitee record)
@@ -114,23 +210,11 @@ class ApiClient {
   }
 
   async getUserAvailability(meetingId: string) {
-    return this.fetch<{
-      data: {
-        id: string;
-        meeting_id: string;
-        user_id: string;
-        available_slots: AvailableSlot[];
-        source: string;
-        created_at: string;
-        updated_at: string;
-      } | null;
-    }>(`/meetings/${meetingId}/availability`);
+    return this.fetch<{ data: UserAvailabilityRaw | null }>(`/meetings/${meetingId}/availability`);
   }
 
   // Locations
-  async getLocations(): Promise<{
-    data: { id: string; name: string; latitude: number; longitude: number }[];
-  }> {
+  async getLocations() {
     return this.fetch<{
       data: { id: string; name: string; latitude: number; longitude: number }[];
     }>("/locations");

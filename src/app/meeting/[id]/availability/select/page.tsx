@@ -3,12 +3,11 @@
 import { use, useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { format, parse, getDay } from "date-fns";
-import { api } from "@/lib/api";
+import { format, parse, getDay, getISOWeek } from "date-fns";
+import { api, ApiError } from "@/lib/api";
 import type { AvailableSlot, BusySlot } from "@/types/meeting";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const BANGKOK_OFFSET = 7 * 60; // minutes
 
 /** Generate hourly slots from time slots, e.g. [{start:"09:00",end:"13:00"}] => ["09:00","10:00","11:00","12:00"] */
 function generateHours(timeSlots: { start: string; end: string }[]): string[] {
@@ -23,29 +22,38 @@ function generateHours(timeSlots: { start: string; end: string }[]): string[] {
   return Array.from(hourSet).sort();
 }
 
-/** Group dates into weeks (max 7 per group) */
+/** Group dates into calendar weeks */
 function groupByWeek(dates: string[]): string[][] {
   const sorted = [...dates].sort();
   const weeks: string[][] = [];
-  for (let i = 0; i < sorted.length; i += 7) {
-    weeks.push(sorted.slice(i, i + 7));
+  let currentWeek: string[] = [];
+  let currentWeekNum: number | null = null;
+
+  for (const d of sorted) {
+    const parsed = parse(d, "yyyy-MM-dd", new Date());
+    const weekNum = getISOWeek(parsed);
+    if (currentWeekNum !== null && weekNum !== currentWeekNum) {
+      weeks.push(currentWeek);
+      currentWeek = [];
+    }
+    currentWeekNum = weekNum;
+    currentWeek.push(d);
   }
+  if (currentWeek.length > 0) weeks.push(currentWeek);
   return weeks;
 }
 
 /** Check if a given date+hour cell overlaps with any busy slot */
 function isBusyAt(date: string, hour: string, busySlots: BusySlot[]): boolean {
   // Cell represents [date hour, date hour+1) in Bangkok time
-  const cellStart = parse(`${date} ${hour}`, "yyyy-MM-dd HH:mm", new Date());
-  // Adjust to UTC by subtracting Bangkok offset for comparison
-  const cellStartUTC = new Date(cellStart.getTime() - BANGKOK_OFFSET * 60000);
-  const cellEndUTC = new Date(cellStartUTC.getTime() + 3600000);
+  // Use explicit +07:00 offset so it's correct regardless of browser timezone
+  const cellStart = new Date(`${date}T${hour}:00+07:00`);
+  const cellEnd = new Date(cellStart.getTime() + 3600000);
 
   for (const busy of busySlots) {
     const busyStart = new Date(busy.start);
     const busyEnd = new Date(busy.end);
-    // Overlaps if cellStart < busyEnd && cellEnd > busyStart
-    if (cellStartUTC < busyEnd && cellEndUTC > busyStart) {
+    if (cellStart < busyEnd && cellEnd > busyStart) {
       return true;
     }
   }
@@ -59,12 +67,21 @@ function SelectContent({ meetingId }: { meetingId: string }) {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [activeWeek, setActiveWeek] = useState(0);
   const [initialized, setInitialized] = useState(false);
 
   // Touch drag state
   const isDragging = useRef(false);
   const dragMode = useRef<"select" | "deselect">("select");
+
+  const { data: meData } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => api.getMe(),
+  });
+
+  const hasGoogleCalendar = meData?.data?.hasGoogleCalendar ?? false;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["meeting", meetingId],
@@ -170,6 +187,34 @@ function SelectContent({ meetingId }: { meetingId: string }) {
 
   const handleClearAll = () => {
     setSelected(new Set());
+  };
+
+  const handleSyncCalendar = async () => {
+    setIsSyncingCalendar(true);
+    setSyncError(null);
+    try {
+      const res = await api.syncGoogleCalendar(meetingId);
+      const busySlots: BusySlot[] = res.data?.busy_slots ?? [];
+      const allDates = meeting?.selectedDates ?? [];
+      const allHours = generateHours(meeting?.timeSlots ?? []);
+      const pre = new Set<string>();
+      for (const date of allDates) {
+        for (const hour of allHours) {
+          if (!isBusyAt(date, hour, busySlots)) {
+            pre.add(`${date}|${hour}`);
+          }
+        }
+      }
+      setSelected(pre);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 422) {
+        setSyncError("Calendar access was revoked. Please reconnect Google Calendar.");
+      } else {
+        setSyncError("Failed to sync calendar. Please try again.");
+      }
+    } finally {
+      setIsSyncingCalendar(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -312,20 +357,33 @@ function SelectContent({ meetingId }: { meetingId: string }) {
         </div>
 
         {/* Bulk buttons */}
-        <div className="flex justify-center items-center gap-3 mt-4 mb-2">
+        <div className="flex justify-center items-center gap-2 mt-4 mb-2">
           <button
             onClick={handleSelectAll}
-            className="bg-[#e8f5e9] text-[#1b5e20] hover:bg-[#c8e6c9] active:bg-[#a5d6a7] px-4 py-2 text-sm font-semibold rounded-xl transition-colors shadow-sm"
+            className="bg-[#e8f5e9] text-[#1b5e20] hover:bg-[#c8e6c9] active:bg-[#a5d6a7] px-3 h-9 text-xs font-semibold rounded-xl transition-colors shadow-sm"
           >
             Available All
           </button>
           <button
             onClick={handleClearAll}
-            className="bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400 px-4 py-2 text-sm font-semibold rounded-xl transition-colors shadow-sm"
+            className="bg-gray-200 text-gray-700 hover:bg-gray-300 active:bg-gray-400 px-3 h-9 text-xs font-semibold rounded-xl transition-colors shadow-sm"
           >
             Unavailable All
           </button>
+          {hasGoogleCalendar && (
+            <button
+              onClick={handleSyncCalendar}
+              disabled={isSyncingCalendar}
+              className="bg-[#e8eaf6] text-[#283593] hover:bg-[#c5cae9] active:bg-[#9fa8da] px-3 h-9 text-xs font-semibold rounded-xl transition-colors shadow-sm flex items-center gap-1.5 disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined text-base">calendar_month</span>
+              {isSyncingCalendar ? "Syncing..." : "Sync"}
+            </button>
+          )}
         </div>
+        {syncError && (
+          <p className="text-red-500 text-sm text-center mt-1">{syncError}</p>
+        )}
       </main>
 
       {/* Fixed footer */}

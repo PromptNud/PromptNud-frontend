@@ -205,7 +205,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
                   disabled={isSyncing}
                   className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-60"
                 >
-                  {isSyncing ? "Syncing..." : "Sync Calendar"}
+                  {isSyncing ? "Syncing..." : "Sync"}
                 </button>
               </>
             )}
