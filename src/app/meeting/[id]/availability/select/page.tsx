@@ -302,7 +302,10 @@ function SelectContent({ meetingId }: { meetingId: string }) {
             {weeks.map((week, i) => {
               const startDate = parse(week[0], "yyyy-MM-dd", new Date());
               const endDate = parse(week[week.length - 1], "yyyy-MM-dd", new Date());
-              const label = `${format(startDate, "MMM d")}-${format(endDate, "d")}`;
+              const sameMonth = startDate.getMonth() === endDate.getMonth();
+              const label = sameMonth
+                ? `${format(startDate, "MMM d")}-${format(endDate, "d")}`
+                : `${format(startDate, "MMM d")} - ${format(endDate, "MMM d")}`;
               return (
                 <button
                   key={i}
