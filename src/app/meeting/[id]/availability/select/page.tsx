@@ -338,53 +338,58 @@ function SelectContent({ meetingId }: { meetingId: string }) {
             {/* Grid columns */}
             <div className="flex-1 overflow-x-auto no-scrollbar pl-1">
               <div
+                role="grid"
                 className="grid gap-1 w-max min-w-full"
                 style={{ gridTemplateColumns: `repeat(${currentDates.length}, 60px)` }}
               >
                 {/* Day headers */}
-                {currentDates.map((dateStr) => {
-                  const d = parse(dateStr, "yyyy-MM-dd", new Date());
-                  const dayName = DAY_NAMES[getDay(d)];
-                  const dayNum = format(d, "d");
-                  return (
-                    <div key={dateStr} className="w-[60px] text-center pb-2 sticky top-0 bg-surface-light z-10">
-                      <div className="text-[10px] font-medium text-gray-400 uppercase">{dayName}</div>
-                      <div className="text-sm font-bold text-gray-900">{dayNum}</div>
-                    </div>
-                  );
-                })}
+                <div role="row" style={{ display: "contents" }}>
+                  {currentDates.map((dateStr) => {
+                    const d = parse(dateStr, "yyyy-MM-dd", new Date());
+                    const dayName = DAY_NAMES[getDay(d)];
+                    const dayNum = format(d, "d");
+                    return (
+                      <div key={dateStr} role="columnheader" className="w-[60px] text-center pb-2 sticky top-0 bg-surface-light z-10">
+                        <div className="text-[10px] font-medium text-gray-400 uppercase">{dayName}</div>
+                        <div className="text-sm font-bold text-gray-900">{dayNum}</div>
+                      </div>
+                    );
+                  })}
+                </div>
 
                 {/* Grid cells */}
-                {hours.map((hour) =>
-                  currentDates.map((dateStr) => {
-                    const key = `${dateStr}|${hour}`;
-                    const isSelected = selected.has(key);
-                    return (
-                      <div
-                        key={key}
-                        role="gridcell"
-                        tabIndex={0}
-                        aria-selected={isSelected}
-                        className={`h-7 w-[60px] rounded cursor-pointer select-none touch-none outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                          isSelected
-                            ? "bg-grid-selected shadow-sm"
-                            : "bg-grid-default hover:opacity-80"
-                        }`}
-                        onPointerDown={(e) => {
-                          e.preventDefault();
-                          handlePointerDown(key);
-                        }}
-                        onPointerEnter={() => handlePointerEnter(key)}
-                        onKeyDown={(e) => {
-                          if (e.key === " " || e.key === "Enter") {
+                {hours.map((hour) => (
+                  <div key={hour} role="row" style={{ display: "contents" }}>
+                    {currentDates.map((dateStr) => {
+                      const key = `${dateStr}|${hour}`;
+                      const isSelected = selected.has(key);
+                      return (
+                        <div
+                          key={key}
+                          role="gridcell"
+                          tabIndex={0}
+                          aria-selected={isSelected}
+                          className={`h-7 w-[60px] rounded cursor-pointer select-none touch-none outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                            isSelected
+                              ? "bg-grid-selected shadow-sm"
+                              : "bg-grid-default hover:opacity-80"
+                          }`}
+                          onPointerDown={(e) => {
                             e.preventDefault();
                             handlePointerDown(key);
-                          }
-                        }}
-                      />
-                    );
-                  })
-                )}
+                          }}
+                          onPointerEnter={() => handlePointerEnter(key)}
+                          onKeyDown={(e) => {
+                            if (e.key === " " || e.key === "Enter") {
+                              e.preventDefault();
+                              handlePointerDown(key);
+                            }
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
