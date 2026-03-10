@@ -78,10 +78,6 @@ function SelectContent({ meetingId }: { meetingId: string }) {
   const [initialized, setInitialized] = useState(false);
   const sourceRef = useRef<"manual" | "calendar">(mode === "calendar" ? "calendar" : "manual");
 
-  // Touch drag state
-  const isDragging = useRef(false);
-  const dragMode = useRef<"select" | "deselect">("select");
-
   const { data: meData } = useQuery({
     queryKey: ["me"],
     queryFn: () => api.getMe(),
@@ -149,45 +145,17 @@ function SelectContent({ meetingId }: { meetingId: string }) {
     }
   }, [meeting, meetingId, mode, initialized]);
 
-  const setCell = useCallback((key: string, value: boolean) => {
+  const handleCellTap = useCallback((key: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (value) {
-        next.add(key);
-      } else {
+      if (next.has(key)) {
         next.delete(key);
+      } else {
+        next.add(key);
       }
       return next;
     });
   }, []);
-
-  const handlePointerDown = useCallback(
-    (key: string) => {
-      isDragging.current = true;
-      const willSelect = !selected.has(key);
-      dragMode.current = willSelect ? "select" : "deselect";
-      setCell(key, willSelect);
-    },
-    [selected, setCell]
-  );
-
-  const handlePointerEnter = useCallback(
-    (key: string) => {
-      if (!isDragging.current) return;
-      setCell(key, dragMode.current === "select");
-    },
-    [setCell]
-  );
-
-  const handlePointerUp = useCallback(() => {
-    isDragging.current = false;
-  }, []);
-
-  // Global pointer up listener
-  useEffect(() => {
-    window.addEventListener("pointerup", handlePointerUp);
-    return () => window.removeEventListener("pointerup", handlePointerUp);
-  }, [handlePointerUp]);
 
   const handleSelectAll = () => {
     const allDates = meeting?.selectedDates ?? [];
@@ -272,7 +240,6 @@ function SelectContent({ meetingId }: { meetingId: string }) {
   return (
     <div
       className="relative flex flex-col min-h-screen w-full max-w-md mx-auto bg-bg-light overflow-hidden"
-      onPointerUp={handlePointerUp}
     >
       {/* Header */}
       <header className="bg-primary px-6 pt-12 pb-8 rounded-b-3xl shadow-lg relative z-20 shrink-0">
@@ -289,7 +256,7 @@ function SelectContent({ meetingId }: { meetingId: string }) {
         <div className="mb-4">
           <h3 className="text-xl font-bold text-gray-900">Tap your free times</h3>
           <p className="text-sm text-gray-500 mt-1">
-            Tap or drag across the grid to select when you&apos;re available. Green = free.
+            Tap cells to select when you&apos;re available. Green = free.
           </p>
           {loadError && (
             <p className="text-amber-600 text-sm mt-2">{loadError}</p>
@@ -369,20 +336,16 @@ function SelectContent({ meetingId }: { meetingId: string }) {
                           role="gridcell"
                           tabIndex={0}
                           aria-selected={isSelected}
-                          className={`h-7 w-[60px] rounded cursor-pointer select-none touch-none outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                          className={`h-7 w-[60px] rounded cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                             isSelected
                               ? "bg-grid-selected shadow-sm"
                               : "bg-grid-default hover:opacity-80"
                           }`}
-                          onPointerDown={(e) => {
-                            e.preventDefault();
-                            handlePointerDown(key);
-                          }}
-                          onPointerEnter={() => handlePointerEnter(key)}
+                          onClick={() => handleCellTap(key)}
                           onKeyDown={(e) => {
                             if (e.key === " " || e.key === "Enter") {
                               e.preventDefault();
-                              handlePointerDown(key);
+                              handleCellTap(key);
                             }
                           }}
                         />
