@@ -145,18 +145,6 @@ function SelectContent({ meetingId }: { meetingId: string }) {
     }
   }, [meeting, meetingId, mode, initialized]);
 
-  const setCell = useCallback((key: string, value: boolean) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (value) {
-        next.add(key);
-      } else {
-        next.delete(key);
-      }
-      return next;
-    });
-  }, []);
-
   const handleCellTap = useCallback((key: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
