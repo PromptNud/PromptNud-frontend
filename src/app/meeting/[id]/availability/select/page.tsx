@@ -158,8 +158,16 @@ function SelectContent({ meetingId }: { meetingId: string }) {
   }, []);
 
   const handleCellTap = useCallback((key: string) => {
-    setCell(key, !selected.has(key));
-  }, [selected, setCell]);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
 
   const handleSelectAll = () => {
     const allDates = meeting?.selectedDates ?? [];
