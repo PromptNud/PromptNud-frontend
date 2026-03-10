@@ -145,7 +145,21 @@ function SelectContent({ meetingId }: { meetingId: string }) {
     }
   }, [meeting, meetingId, mode, initialized]);
 
-  const handleCellTap = useCallback((key: string) => {
+  // Track pointer start position + cell key to distinguish taps from scrolls
+  const pointerStart = useRef<{ x: number; y: number; key: string } | null>(null);
+  const TAP_THRESHOLD = 10; // px – movement beyond this is a scroll, not a tap
+
+  const handlePointerDown = useCallback((key: string, e: React.PointerEvent) => {
+    pointerStart.current = { x: e.clientX, y: e.clientY, key };
+  }, []);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!pointerStart.current) return;
+    const { x, y, key } = pointerStart.current;
+    pointerStart.current = null;
+    const dx = e.clientX - x;
+    const dy = e.clientY - y;
+    if (dx * dx + dy * dy > TAP_THRESHOLD * TAP_THRESHOLD) return; // was a scroll
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
@@ -155,6 +169,25 @@ function SelectContent({ meetingId }: { meetingId: string }) {
       }
       return next;
     });
+  }, []);
+
+  const handlePointerCancel = useCallback(() => {
+    pointerStart.current = null;
+  }, []);
+
+  const handleCellKeyDown = useCallback((key: string, e: React.KeyboardEvent) => {
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      setSelected((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) {
+          next.delete(key);
+        } else {
+          next.add(key);
+        }
+        return next;
+      });
+    }
   }, []);
 
   const handleSelectAll = () => {
@@ -341,13 +374,10 @@ function SelectContent({ meetingId }: { meetingId: string }) {
                               ? "bg-grid-selected shadow-sm"
                               : "bg-grid-default hover:opacity-80"
                           }`}
-                          onClick={() => handleCellTap(key)}
-                          onKeyDown={(e) => {
-                            if (e.key === " " || e.key === "Enter") {
-                              e.preventDefault();
-                              handleCellTap(key);
-                            }
-                          }}
+                          onPointerDown={(e) => handlePointerDown(key, e)}
+                          onPointerUp={handlePointerUp}
+                          onPointerCancel={handlePointerCancel}
+                          onKeyDown={(e) => handleCellKeyDown(key, e)}
                         />
                       );
                     })}
