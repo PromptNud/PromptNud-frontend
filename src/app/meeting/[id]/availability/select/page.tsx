@@ -145,7 +145,20 @@ function SelectContent({ meetingId }: { meetingId: string }) {
     }
   }, [meeting, meetingId, mode, initialized]);
 
-  const handleCellTap = useCallback((key: string) => {
+  // Track pointer start position to distinguish taps from scrolls
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const TAP_THRESHOLD = 10; // px – movement beyond this is a scroll, not a tap
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    pointerStart.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const handlePointerUp = useCallback((key: string, e: React.PointerEvent) => {
+    if (!pointerStart.current) return;
+    const dx = e.clientX - pointerStart.current.x;
+    const dy = e.clientY - pointerStart.current.y;
+    pointerStart.current = null;
+    if (dx * dx + dy * dy > TAP_THRESHOLD * TAP_THRESHOLD) return; // was a scroll
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
@@ -155,6 +168,21 @@ function SelectContent({ meetingId }: { meetingId: string }) {
       }
       return next;
     });
+  }, []);
+
+  const handleCellKeyDown = useCallback((key: string, e: React.KeyboardEvent) => {
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      setSelected((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) {
+          next.delete(key);
+        } else {
+          next.add(key);
+        }
+        return next;
+      });
+    }
   }, []);
 
   const handleSelectAll = () => {
@@ -341,13 +369,9 @@ function SelectContent({ meetingId }: { meetingId: string }) {
                               ? "bg-grid-selected shadow-sm"
                               : "bg-grid-default hover:opacity-80"
                           }`}
-                          onClick={() => handleCellTap(key)}
-                          onKeyDown={(e) => {
-                            if (e.key === " " || e.key === "Enter") {
-                              e.preventDefault();
-                              handleCellTap(key);
-                            }
-                          }}
+                          onPointerDown={handlePointerDown}
+                          onPointerUp={(e) => handlePointerUp(key, e)}
+                          onKeyDown={(e) => handleCellKeyDown(key, e)}
                         />
                       );
                     })}
