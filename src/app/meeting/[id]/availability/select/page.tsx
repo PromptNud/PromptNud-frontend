@@ -145,19 +145,20 @@ function SelectContent({ meetingId }: { meetingId: string }) {
     }
   }, [meeting, meetingId, mode, initialized]);
 
-  // Track pointer start position to distinguish taps from scrolls
-  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  // Track pointer start position + cell key to distinguish taps from scrolls
+  const pointerStart = useRef<{ x: number; y: number; key: string } | null>(null);
   const TAP_THRESHOLD = 10; // px – movement beyond this is a scroll, not a tap
 
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    pointerStart.current = { x: e.clientX, y: e.clientY };
+  const handlePointerDown = useCallback((key: string, e: React.PointerEvent) => {
+    pointerStart.current = { x: e.clientX, y: e.clientY, key };
   }, []);
 
-  const handlePointerUp = useCallback((key: string, e: React.PointerEvent) => {
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!pointerStart.current) return;
-    const dx = e.clientX - pointerStart.current.x;
-    const dy = e.clientY - pointerStart.current.y;
+    const { x, y, key } = pointerStart.current;
     pointerStart.current = null;
+    const dx = e.clientX - x;
+    const dy = e.clientY - y;
     if (dx * dx + dy * dy > TAP_THRESHOLD * TAP_THRESHOLD) return; // was a scroll
     setSelected((prev) => {
       const next = new Set(prev);
@@ -168,6 +169,10 @@ function SelectContent({ meetingId }: { meetingId: string }) {
       }
       return next;
     });
+  }, []);
+
+  const handlePointerCancel = useCallback(() => {
+    pointerStart.current = null;
   }, []);
 
   const handleCellKeyDown = useCallback((key: string, e: React.KeyboardEvent) => {
@@ -369,8 +374,9 @@ function SelectContent({ meetingId }: { meetingId: string }) {
                               ? "bg-grid-selected shadow-sm"
                               : "bg-grid-default hover:opacity-80"
                           }`}
-                          onPointerDown={handlePointerDown}
-                          onPointerUp={(e) => handlePointerUp(key, e)}
+                          onPointerDown={(e) => handlePointerDown(key, e)}
+                          onPointerUp={handlePointerUp}
+                          onPointerCancel={handlePointerCancel}
                           onKeyDown={(e) => handleCellKeyDown(key, e)}
                         />
                       );
