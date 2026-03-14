@@ -81,12 +81,9 @@ function formatDuration(minutes: number): string {
 // --- "Past" check: all selected dates < today (Bangkok) ---
 
 function isMeetingPast(meeting: MeetingListItem): boolean {
-  const now = new Date();
   // Bangkok is UTC+7
-  const bangkokOffset = 7 * 60;
-  const utcMinutes = now.getTime() / 60000 + now.getTimezoneOffset();
-  const bangkokDate = new Date((utcMinutes + bangkokOffset) * 60000);
-  const todayStr = bangkokDate.toISOString().slice(0, 10);
+  const bangkokNow = new Date(Date.now() + 7 * 60 * 60000);
+  const todayStr = bangkokNow.toISOString().slice(0, 10);
 
   return meeting.selectedDates.every((d) => d < todayStr);
 }
@@ -218,7 +215,7 @@ function MeetingsContent() {
 
   const groupId = searchParams.get("groupId");
 
-  const { data: meetings = [], isLoading } = useQuery({
+  const { data: meetings, isLoading, isError } = useQuery({
     queryKey: ["meetings", "group", groupId],
     queryFn: async () => {
       const res = await api.getMeetingsByGroup(groupId!);
@@ -228,7 +225,7 @@ function MeetingsContent() {
   });
 
   const filtered = useMemo(
-    () => filterMeetings(meetings, activeTab),
+    () => (meetings ? filterMeetings(meetings, activeTab) : []),
     [meetings, activeTab]
   );
 
@@ -296,8 +293,23 @@ function MeetingsContent() {
           </div>
         )}
 
+        {/* Error state */}
+        {isError && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <span className="material-symbols-outlined text-red-300 text-5xl mb-4">
+              cloud_off
+            </span>
+            <p className="text-gray-600 font-medium">
+              Failed to load meetings
+            </p>
+            <p className="text-gray-400 text-sm mt-1">
+              Please check your connection and try again.
+            </p>
+          </div>
+        )}
+
         {/* Meeting cards */}
-        {!isLoading && filtered.length > 0 && (
+        {!isLoading && !isError && filtered.length > 0 && (
           <div className="space-y-4">
             {filtered.map((meeting) => (
               <MeetingCard key={meeting.id} meeting={meeting} />
@@ -306,7 +318,7 @@ function MeetingsContent() {
         )}
 
         {/* Empty state */}
-        {!isLoading && filtered.length === 0 && (
+        {!isLoading && !isError && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <span className="material-symbols-outlined text-gray-300 text-5xl mb-4">
               event_busy

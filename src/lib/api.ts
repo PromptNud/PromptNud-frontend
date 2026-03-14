@@ -75,15 +75,25 @@ interface MeetingListItemRaw {
 // --- Mapping helpers ---
 
 function mapMeeting(raw: MeetingRaw): Meeting {
+  if (!VALID_STATUSES.includes(raw.status as MeetingStatus)) {
+    throw new Error(`Unknown meeting status: ${raw.status}`);
+  }
+  if (!VALID_TYPES.includes(raw.type as MeetingTypeEnum)) {
+    throw new Error(`Unknown meeting type: ${raw.type}`);
+  }
+  if (!VALID_LOCATION_MODES.includes(raw.location_mode as LocationMode)) {
+    throw new Error(`Unknown location mode: ${raw.location_mode}`);
+  }
+
   return {
     id: raw.id,
     title: raw.title,
     organizerUserId: raw.organizer_user_id,
     lineGroupId: raw.line_group_id,
-    status: raw.status,
-    type: raw.type,
+    status: raw.status as MeetingStatus,
+    type: raw.type as MeetingTypeEnum,
     durationMinutes: raw.duration_minutes,
-    locationMode: raw.location_mode,
+    locationMode: raw.location_mode as LocationMode,
     location: raw.location,
     selectedDates: raw.selected_dates ?? [],
     timeSlots: raw.time_slots ?? [],
@@ -98,7 +108,21 @@ function mapMeeting(raw: MeetingRaw): Meeting {
   };
 }
 
+const VALID_STATUSES: MeetingStatus[] = ["collecting", "voting", "confirmed", "cancelled"];
+const VALID_TYPES: MeetingTypeEnum[] = ["meals", "cafe", "sports", "others"];
+const VALID_LOCATION_MODES: LocationMode[] = ["specify", "decide_later", "recommend"];
+
 function mapMeetingListItem(raw: MeetingListItemRaw): MeetingListItem {
+  if (!VALID_STATUSES.includes(raw.status as MeetingStatus)) {
+    throw new Error(`Unknown meeting status: ${raw.status}`);
+  }
+  if (!VALID_TYPES.includes(raw.type as MeetingTypeEnum)) {
+    throw new Error(`Unknown meeting type: ${raw.type}`);
+  }
+  if (!VALID_LOCATION_MODES.includes(raw.location_mode as LocationMode)) {
+    throw new Error(`Unknown location mode: ${raw.location_mode}`);
+  }
+
   return {
     id: raw.id,
     title: raw.title,
@@ -240,7 +264,7 @@ class ApiClient {
   }
 
   async getMeetingsByGroup(groupId: string) {
-    const res = await this.fetch<{ data: MeetingListItemRaw[] }>(`/meetings/group/${groupId}`);
+    const res = await this.fetch<{ data: MeetingListItemRaw[] }>(`/meetings/group/${encodeURIComponent(groupId)}`);
     return { data: res.data.map(mapMeetingListItem) };
   }
 

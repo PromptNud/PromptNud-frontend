@@ -16,10 +16,10 @@ export interface Meeting {
   title: string;
   organizerUserId: string;
   lineGroupId: string;
-  status: string;
-  type: string;
+  status: MeetingStatus;
+  type: MeetingTypeEnum;
   durationMinutes: number;
-  locationMode: string;
+  locationMode: LocationMode;
   location?: string;
   selectedDates: string[];
   timeSlots: TimeSlot[];
@@ -43,9 +43,9 @@ export interface Meeting {
 export interface CreateMeetingRequest {
   title: string;
   lineGroupId: string;
-  type: string;
+  type: MeetingTypeEnum;
   durationMinutes: number;
-  locationMode: string;
+  locationMode: LocationMode;
   location?: string;
   selectedDates: string[];
   timeSlots: { start: string; end: string }[];
