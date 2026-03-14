@@ -74,6 +74,10 @@ interface MeetingListItemRaw {
 
 // --- Mapping helpers ---
 
+const VALID_STATUSES: MeetingStatus[] = ["collecting", "voting", "confirmed", "cancelled"];
+const VALID_TYPES: MeetingTypeEnum[] = ["meals", "cafe", "sports", "others"];
+const VALID_LOCATION_MODES: LocationMode[] = ["specify", "decide_later", "recommend"];
+
 function mapMeeting(raw: MeetingRaw): Meeting {
   if (!VALID_STATUSES.includes(raw.status as MeetingStatus)) {
     throw new Error(`Unknown meeting status: ${raw.status}`);
@@ -107,10 +111,6 @@ function mapMeeting(raw: MeetingRaw): Meeting {
     updatedAt: raw.updated_at,
   };
 }
-
-const VALID_STATUSES: MeetingStatus[] = ["collecting", "voting", "confirmed", "cancelled"];
-const VALID_TYPES: MeetingTypeEnum[] = ["meals", "cafe", "sports", "others"];
-const VALID_LOCATION_MODES: LocationMode[] = ["specify", "decide_later", "recommend"];
 
 function mapMeetingListItem(raw: MeetingListItemRaw): MeetingListItem {
   if (!VALID_STATUSES.includes(raw.status as MeetingStatus)) {

@@ -333,7 +333,7 @@ function MeetingsContent() {
       {/* FAB */}
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-20">
         <Link
-          href={`/create?groupId=${groupId}`}
+          href={`/create?groupId=${encodeURIComponent(groupId)}`}
           className="bg-[#f98006] hover:bg-[#d66c00] text-white rounded-full p-4 shadow-lg transition-colors flex items-center justify-center border-4 border-[#fdfaf6]"
         >
           <span className="material-symbols-outlined block text-[28px]">
