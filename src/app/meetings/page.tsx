@@ -72,15 +72,17 @@ function locationDisplay(mode: LocationMode, location?: string) {
 // --- Duration formatting ---
 
 function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const hours = minutes / 60;
-  if (Number.isInteger(hours)) return `${hours} hour${hours > 1 ? "s" : ""}`;
-  return `${hours} hours`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
 }
 
 // --- "Past" check: all selected dates < today (Bangkok) ---
 
 function isMeetingPast(meeting: MeetingListItem): boolean {
+  if (meeting.selectedDates.length === 0) return false;
   // Bangkok is UTC+7
   const bangkokNow = new Date(Date.now() + 7 * 60 * 60000);
   const todayStr = bangkokNow.toISOString().slice(0, 10);
