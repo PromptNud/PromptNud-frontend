@@ -1,5 +1,5 @@
 import { createApiHeaders, getApiBaseUrl } from "@/utils/apiHeaders";
-import type { Meeting, CreateMeetingRequest, AvailableSlot, BusySlot } from "@/types/meeting";
+import type { Meeting, CreateMeetingRequest, AvailableSlot, BusySlot, MeetingListItem, MeetingStatus, MeetingTypeEnum, LocationMode } from "@/types/meeting";
 
 // --- Raw snake_case response types matching backend JSON ---
 
@@ -52,18 +52,52 @@ interface UserAvailabilityRaw {
   updated_at: string;
 }
 
+interface MeetingListItemRaw {
+  id: string;
+  title: string;
+  organizer_user_id: string;
+  line_group_id: string;
+  status: string;
+  type: string;
+  duration_minutes: number;
+  location_mode: string;
+  location?: string;
+  selected_dates: string[];
+  member_mode: string;
+  notes?: string;
+  datetime_start?: string;
+  datetime_end?: string;
+  invitee_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Mapping helpers ---
 
+const VALID_STATUSES: MeetingStatus[] = ["collecting", "voting", "confirmed", "cancelled"];
+const VALID_TYPES: MeetingTypeEnum[] = ["meals", "cafe", "sports", "others"];
+const VALID_LOCATION_MODES: LocationMode[] = ["specify", "decide_later", "recommend"];
+
 function mapMeeting(raw: MeetingRaw): Meeting {
+  if (!VALID_STATUSES.includes(raw.status as MeetingStatus)) {
+    throw new Error(`Unknown meeting status: ${raw.status}`);
+  }
+  if (!VALID_TYPES.includes(raw.type as MeetingTypeEnum)) {
+    throw new Error(`Unknown meeting type: ${raw.type}`);
+  }
+  if (!VALID_LOCATION_MODES.includes(raw.location_mode as LocationMode)) {
+    throw new Error(`Unknown location mode: ${raw.location_mode}`);
+  }
+
   return {
     id: raw.id,
     title: raw.title,
     organizerUserId: raw.organizer_user_id,
     lineGroupId: raw.line_group_id,
-    status: raw.status,
-    type: raw.type,
+    status: raw.status as MeetingStatus,
+    type: raw.type as MeetingTypeEnum,
     durationMinutes: raw.duration_minutes,
-    locationMode: raw.location_mode,
+    locationMode: raw.location_mode as LocationMode,
     location: raw.location,
     selectedDates: raw.selected_dates ?? [],
     timeSlots: raw.time_slots ?? [],
@@ -73,6 +107,38 @@ function mapMeeting(raw: MeetingRaw): Meeting {
     datetimeStart: raw.datetime_start,
     datetimeEnd: raw.datetime_end,
     invitees: raw.invitees?.map(mapInvitee),
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
+  };
+}
+
+function mapMeetingListItem(raw: MeetingListItemRaw): MeetingListItem {
+  if (!VALID_STATUSES.includes(raw.status as MeetingStatus)) {
+    throw new Error(`Unknown meeting status: ${raw.status}`);
+  }
+  if (!VALID_TYPES.includes(raw.type as MeetingTypeEnum)) {
+    throw new Error(`Unknown meeting type: ${raw.type}`);
+  }
+  if (!VALID_LOCATION_MODES.includes(raw.location_mode as LocationMode)) {
+    throw new Error(`Unknown location mode: ${raw.location_mode}`);
+  }
+
+  return {
+    id: raw.id,
+    title: raw.title,
+    organizerUserId: raw.organizer_user_id,
+    lineGroupId: raw.line_group_id,
+    status: raw.status as MeetingStatus,
+    type: raw.type as MeetingTypeEnum,
+    durationMinutes: raw.duration_minutes,
+    locationMode: raw.location_mode as LocationMode,
+    location: raw.location,
+    selectedDates: raw.selected_dates ?? [],
+    memberMode: raw.member_mode,
+    notes: raw.notes,
+    datetimeStart: raw.datetime_start,
+    datetimeEnd: raw.datetime_end,
+    inviteeCount: raw.invitee_count,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
   };
@@ -198,8 +264,8 @@ class ApiClient {
   }
 
   async getMeetingsByGroup(groupId: string) {
-    const res = await this.fetch<{ data: MeetingRaw[] }>(`/meetings/group/${groupId}`);
-    return { data: res.data.map(mapMeeting) };
+    const res = await this.fetch<{ data: MeetingListItemRaw[] }>(`/meetings/group/${encodeURIComponent(groupId)}`);
+    return { data: res.data.map(mapMeetingListItem) };
   }
 
   // Join meeting (links LINE user to invitee record)

@@ -16,10 +16,10 @@ export interface Meeting {
   title: string;
   organizerUserId: string;
   lineGroupId: string;
-  status: string;
-  type: string;
+  status: MeetingStatus;
+  type: MeetingTypeEnum;
   durationMinutes: number;
-  locationMode: string;
+  locationMode: LocationMode;
   location?: string;
   selectedDates: string[];
   timeSlots: TimeSlot[];
@@ -43,14 +43,47 @@ export interface Meeting {
 export interface CreateMeetingRequest {
   title: string;
   lineGroupId: string;
-  type: string;
+  type: MeetingTypeEnum;
   durationMinutes: number;
-  locationMode: string;
+  locationMode: LocationMode;
   location?: string;
   selectedDates: string[];
   timeSlots: { start: string; end: string }[];
   memberMode: string;
   notes?: string;
+}
+
+// Meeting statuses (matches backend enum)
+export type MeetingStatus = "collecting" | "voting" | "confirmed" | "cancelled";
+
+// Meeting type enum
+export type MeetingTypeEnum = "meals" | "cafe" | "sports" | "others";
+
+// Location mode enum
+export type LocationMode = "specify" | "decide_later" | "recommend";
+
+// Filter tabs for meetings list page
+export type MeetingFilterTab = "all" | "active" | "confirmed" | "cancelled" | "past";
+
+// Lightweight meeting for list views (matches backend MeetingListResponse)
+export interface MeetingListItem {
+  id: string;
+  title: string;
+  organizerUserId: string;
+  lineGroupId: string;
+  status: MeetingStatus;
+  type: MeetingTypeEnum;
+  durationMinutes: number;
+  locationMode: LocationMode;
+  location?: string;
+  selectedDates: string[];
+  memberMode: string;
+  notes?: string;
+  datetimeStart?: string;
+  datetimeEnd?: string;
+  inviteeCount: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AvailableSlot {
