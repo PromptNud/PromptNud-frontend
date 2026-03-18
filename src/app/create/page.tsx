@@ -399,7 +399,13 @@ function CreateMeetingContent() {
                 {MEETING_TYPES.map((t) => (
                   <button
                     key={t.value}
-                    onClick={() => setMeetingType(t.value)}
+                    onClick={() => {
+                      setMeetingType(t.value);
+                      if (t.value !== "meals" && t.value !== "cafe" && locationMode === "recommend") {
+                        setLocationMode("specify");
+                        setLocation("");
+                      }
+                    }}
                     className={`w-full h-12 flex items-center justify-center gap-2 px-2 rounded-xl text-sm font-medium transition-colors ${
                       meetingType === t.value
                         ? "bg-primary/10 text-primary font-bold border border-primary/20"
@@ -490,13 +496,17 @@ function CreateMeetingContent() {
                 </button>
                 <button
                   onClick={() => {
+                    if (meetingType !== "meals" && meetingType !== "cafe") return;
                     setLocationMode("recommend");
                     setLocation("");
                   }}
+                  disabled={meetingType !== "meals" && meetingType !== "cafe"}
                   className={`w-full h-12 flex items-center justify-start gap-3 px-4 rounded-xl text-sm transition-colors ${
-                    locationMode === "recommend"
-                      ? "bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm"
-                      : "bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 border border-transparent"
+                    meetingType !== "meals" && meetingType !== "cafe"
+                      ? "bg-gray-100 text-gray-300 font-medium border border-transparent cursor-not-allowed"
+                      : locationMode === "recommend"
+                        ? "bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm"
+                        : "bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 border border-transparent"
                   }`}
                 >
                   <span className="material-symbols-outlined text-xl">
@@ -533,7 +543,7 @@ function CreateMeetingContent() {
                     {locations.map((loc) => (
                       <button
                         key={loc.id}
-                        onClick={() => setLocation(loc.name)}
+                        onClick={() => setLocation(location === loc.name ? "" : loc.name)}
                         className={`flex-none h-12 px-6 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
                           location === loc.name
                             ? "bg-primary/10 text-primary font-bold border border-primary/20"
