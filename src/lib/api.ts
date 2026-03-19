@@ -1,5 +1,5 @@
 import { createApiHeaders, getApiBaseUrl } from "@/utils/apiHeaders";
-import type { Meeting, CreateMeetingRequest, AvailableSlot, BusySlot, MeetingListItem, MeetingStatus, MeetingTypeEnum, LocationMode } from "@/types/meeting";
+import type { Meeting, CreateMeetingRequest, AvailableSlot, BusySlot, MeetingListItem, MeetingStatus, MeetingTypeEnum, LocationMode, SchedulingRanking, VoteSummary, VoteSummarySlot } from "@/types/meeting";
 
 // --- Raw snake_case response types matching backend JSON ---
 
@@ -20,6 +20,7 @@ interface MeetingRaw {
   notes?: string;
   datetime_start?: string;
   datetime_end?: string;
+  rankings?: SchedulingRankingRaw[];
   invitees?: InviteeRaw[];
   created_at: string;
   updated_at: string;
@@ -72,6 +73,34 @@ interface MeetingListItemRaw {
   updated_at: string;
 }
 
+interface SchedulingRankingRaw {
+  rank: number;
+  date: string;
+  time: string;
+  score: number;
+  available_count: number;
+  total_count: number;
+  available_members: string[];
+  reason: string;
+}
+
+interface VoteSummarySlotRaw {
+  rank: number;
+  date: string;
+  time: string;
+  score: number;
+  available_count: number;
+  total_count: number;
+  vote_count: number;
+  voter_ids: string[];
+}
+
+interface VoteSummaryRaw {
+  meeting_id: string;
+  total_voters: number;
+  slots: VoteSummarySlotRaw[];
+}
+
 // --- Mapping helpers ---
 
 const VALID_STATUSES: MeetingStatus[] = ["collecting", "voting", "confirmed", "cancelled"];
@@ -106,6 +135,7 @@ function mapMeeting(raw: MeetingRaw): Meeting {
     notes: raw.notes,
     datetimeStart: raw.datetime_start,
     datetimeEnd: raw.datetime_end,
+    rankings: raw.rankings?.map(mapSchedulingRanking),
     invitees: raw.invitees?.map(mapInvitee),
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
@@ -152,6 +182,36 @@ function mapInvitee(raw: InviteeRaw) {
     displayName: raw.display_name,
     status: raw.status,
     createdAt: raw.created_at,
+  };
+}
+
+function mapSchedulingRanking(raw: SchedulingRankingRaw): SchedulingRanking {
+  return {
+    rank: raw.rank,
+    date: raw.date,
+    time: raw.time,
+    score: raw.score,
+    availableCount: raw.available_count,
+    totalCount: raw.total_count,
+    availableMembers: raw.available_members,
+    reason: raw.reason,
+  };
+}
+
+function mapVoteSummary(raw: VoteSummaryRaw): VoteSummary {
+  return {
+    meetingId: raw.meeting_id,
+    totalVoters: raw.total_voters,
+    slots: (raw.slots ?? []).map((s): VoteSummarySlot => ({
+      rank: s.rank,
+      date: s.date,
+      time: s.time,
+      score: s.score,
+      availableCount: s.available_count,
+      totalCount: s.total_count,
+      voteCount: s.vote_count,
+      voterIds: s.voter_ids,
+    })),
   };
 }
 
@@ -311,6 +371,19 @@ class ApiClient {
   async getUserAvailability(meetingId: string): Promise<{ data: UserAvailability | null }> {
     const res = await this.fetch<{ data: UserAvailabilityRaw | null }>(`/meetings/${meetingId}/availability`);
     return { data: res.data ? mapUserAvailability(res.data) : null };
+  }
+
+  // Voting
+  async submitVote(meetingId: string, rankingIndices: number[]) {
+    return this.fetch<{ data: { message: string } }>(`/meetings/${meetingId}/vote`, {
+      method: "POST",
+      body: JSON.stringify({ ranking_indices: rankingIndices }),
+    });
+  }
+
+  async getVoteSummary(meetingId: string): Promise<{ data: VoteSummary }> {
+    const res = await this.fetch<{ data: VoteSummaryRaw }>(`/meetings/${meetingId}/votes`);
+    return { data: mapVoteSummary(res.data) };
   }
 
   // Locations

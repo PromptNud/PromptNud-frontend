@@ -28,6 +28,7 @@ export interface Meeting {
   notes?: string;
   datetimeStart?: string;
   datetimeEnd?: string;
+  rankings?: SchedulingRanking[];
   invitees?: {
     id: string;
     userId?: string;
@@ -94,4 +95,32 @@ export interface AvailableSlot {
 export interface BusySlot {
   start: string; // RFC3339
   end: string;   // RFC3339
+}
+
+export interface SchedulingRanking {
+  rank: number;
+  date: string;
+  time: string;
+  score: number;
+  availableCount: number;
+  totalCount: number;
+  availableMembers: string[];
+  reason: string;
+}
+
+export interface VoteSummarySlot {
+  rank: number;
+  date: string;
+  time: string;
+  score: number;
+  availableCount: number;
+  totalCount: number;
+  voteCount: number;
+  voterIds: string[];
+}
+
+export interface VoteSummary {
+  meetingId: string;
+  totalVoters: number;
+  slots: VoteSummarySlot[];
 }
