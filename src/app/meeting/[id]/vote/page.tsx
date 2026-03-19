@@ -248,10 +248,10 @@ function VoteContent({ meetingId }: { meetingId: string }) {
                       {formatDate(ranking.date)}
                     </p>
                     <p className="text-sm text-gray-600 mt-0.5">
-                      {ranking.time}
+                      {ranking.startTime} - {ranking.endTime}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
-                      {ranking.availableCount}/{ranking.totalCount} available
+                      {ranking.attendance}
                     </p>
                   </div>
 

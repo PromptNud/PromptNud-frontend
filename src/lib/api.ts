@@ -76,21 +76,23 @@ interface MeetingListItemRaw {
 interface SchedulingRankingRaw {
   rank: number;
   date: string;
-  time: string;
+  day_name?: string;
+  start_time: string;
+  end_time: string;
   score: number;
-  available_count: number;
-  total_count: number;
-  available_members: string[];
-  reason: string;
+  attendance: string;
+  reasoning: string;
+  missing_persons?: string[];
+  trade_off?: string;
 }
 
 interface VoteSummarySlotRaw {
   rank: number;
   date: string;
-  time: string;
+  start_time: string;
+  end_time: string;
   score: number;
-  available_count: number;
-  total_count: number;
+  attendance: string;
   vote_count: number;
   voter_ids: string[];
 }
@@ -189,12 +191,14 @@ function mapSchedulingRanking(raw: SchedulingRankingRaw): SchedulingRanking {
   return {
     rank: raw.rank,
     date: raw.date,
-    time: raw.time,
+    dayName: raw.day_name,
+    startTime: raw.start_time,
+    endTime: raw.end_time,
     score: raw.score,
-    availableCount: raw.available_count,
-    totalCount: raw.total_count,
-    availableMembers: raw.available_members,
-    reason: raw.reason,
+    attendance: raw.attendance,
+    reasoning: raw.reasoning,
+    missingPersons: raw.missing_persons,
+    tradeOff: raw.trade_off,
   };
 }
 
@@ -205,10 +209,10 @@ function mapVoteSummary(raw: VoteSummaryRaw): VoteSummary {
     slots: (raw.slots ?? []).map((s): VoteSummarySlot => ({
       rank: s.rank,
       date: s.date,
-      time: s.time,
+      startTime: s.start_time,
+      endTime: s.end_time,
       score: s.score,
-      availableCount: s.available_count,
-      totalCount: s.total_count,
+      attendance: s.attendance,
       voteCount: s.vote_count,
       voterIds: s.voter_ids,
     })),
