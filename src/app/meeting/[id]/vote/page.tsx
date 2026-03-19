@@ -26,7 +26,7 @@ function VoteContent({ meetingId }: { meetingId: string }) {
     joiningRef.current = true;
     joinAttemptsRef.current += 1;
     api
-      .joinMeeting(meetingId, user.userId, user.displayName)
+      .joinMeeting(meetingId, user.userId, user.displayName, user.pictureUrl)
       .then(() => {
         setHasJoined(true);
         setJoinError(null);
@@ -250,9 +250,45 @@ function VoteContent({ meetingId }: { meetingId: string }) {
                     <p className="text-sm text-gray-600 mt-0.5">
                       {ranking.startTime} - {ranking.endTime}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {ranking.attendance}
-                    </p>
+                    {(() => {
+                      const invitees = meeting.invitees ?? [];
+                      const missing = new Set(ranking.missingPersons ?? []);
+                      const available = invitees.filter(
+                        (inv) => !missing.has(inv.lineUserId)
+                      );
+                      return (
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          <div className="flex -space-x-1.5">
+                            {available.slice(0, 5).map((inv) => (
+                              <div
+                                key={inv.lineUserId}
+                                className="w-5 h-5 rounded-full border border-white overflow-hidden bg-gray-200 flex-shrink-0"
+                              >
+                                {inv.pictureUrl ? (
+                                  <img
+                                    src={inv.pictureUrl}
+                                    alt={inv.displayName}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gray-300" />
+                                )}
+                              </div>
+                            ))}
+                            {available.length > 5 && (
+                              <div className="w-5 h-5 rounded-full border border-white bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                <span className="text-[8px] text-gray-500 font-medium">
+                                  +{available.length - 5}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-400">
+                            {available.length}/{invitees.length} available
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Checkbox */}

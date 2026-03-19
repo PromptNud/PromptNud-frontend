@@ -34,6 +34,7 @@ export interface Meeting {
     userId?: string;
     lineUserId: string;
     displayName: string;
+    pictureUrl?: string;
     status: string;
     createdAt: string;
   }[];

@@ -31,6 +31,7 @@ interface InviteeRaw {
   user_id?: string;
   line_user_id: string;
   display_name: string;
+  picture_url?: string;
   status: string;
   created_at: string;
 }
@@ -182,6 +183,7 @@ function mapInvitee(raw: InviteeRaw) {
     userId: raw.user_id,
     lineUserId: raw.line_user_id,
     displayName: raw.display_name,
+    pictureUrl: raw.picture_url,
     status: raw.status,
     createdAt: raw.created_at,
   };
@@ -333,12 +335,13 @@ class ApiClient {
   }
 
   // Join meeting (links LINE user to invitee record)
-  async joinMeeting(meetingId: string, lineUserId: string, displayName: string) {
+  async joinMeeting(meetingId: string, lineUserId: string, displayName: string, pictureUrl?: string) {
     return this.fetch<{ data: unknown }>(`/meetings/${meetingId}/join`, {
       method: "POST",
       body: JSON.stringify({
         line_user_id: lineUserId,
         display_name: displayName,
+        picture_url: pictureUrl ?? "",
       }),
     });
   }
