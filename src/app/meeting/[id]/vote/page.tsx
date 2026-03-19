@@ -17,6 +17,7 @@ function VoteContent({ meetingId }: { meetingId: string }) {
   const [joinError, setJoinError] = useState<string | null>(null);
   const joiningRef = useRef(false);
   const joinAttemptsRef = useRef(0);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const MAX_JOIN_RETRIES = 3;
 
   // Auto-join meeting to link LINE user to invitee record
@@ -41,6 +42,16 @@ function VoteContent({ meetingId }: { meetingId: string }) {
         }
       });
   }, [user, meetingId, hasJoined]);
+
+  // Cleanup close timer on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["meeting", meetingId],
@@ -71,8 +82,8 @@ function VoteContent({ meetingId }: { meetingId: string }) {
           setSelected(votedIndices);
         }
       })
-      .catch(() => {
-        // No existing votes or error — ignore
+      .catch((err) => {
+        console.error("[VotePage] Failed to load existing votes for pre-selection:", err);
       });
   }, [meeting, user, meetingId]);
 
@@ -99,7 +110,8 @@ function VoteContent({ meetingId }: { meetingId: string }) {
       setSubmitSuccess(true);
 
       // Auto-close LIFF after short delay
-      setTimeout(() => {
+      closeTimerRef.current = setTimeout(() => {
+        closeTimerRef.current = null;
         if (liff.isInClient()) {
           liff.closeWindow();
         }
