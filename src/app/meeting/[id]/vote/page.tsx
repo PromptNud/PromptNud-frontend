@@ -7,6 +7,59 @@ import { api, ApiError } from "@/lib/api";
 import { format, parse } from "date-fns";
 import liff from "@line/liff";
 
+function Avatar({ pictureUrl, displayName }: { pictureUrl?: string; displayName: string }) {
+  const [imgError, setImgError] = useState(false);
+
+  if (!pictureUrl || imgError) {
+    return <div className="w-full h-full bg-gray-300" />;
+  }
+
+  return (
+    <img
+      src={pictureUrl}
+      alt={displayName}
+      className="w-full h-full object-cover"
+      onError={() => setImgError(true)}
+    />
+  );
+}
+
+function AvailabilityAvatars({
+  invitees,
+  missingPersons,
+}: {
+  invitees: NonNullable<import("@/types/meeting").Meeting["invitees"]>;
+  missingPersons?: string[];
+}) {
+  const missing = new Set(missingPersons ?? []);
+  const available = invitees.filter((inv) => !missing.has(inv.lineUserId));
+
+  return (
+    <div className="flex items-center gap-1.5 mt-1.5">
+      <div className="flex -space-x-1.5">
+        {available.slice(0, 5).map((inv) => (
+          <div
+            key={inv.lineUserId}
+            className="w-5 h-5 rounded-full border border-white overflow-hidden bg-gray-200 flex-shrink-0"
+          >
+            <Avatar pictureUrl={inv.pictureUrl} displayName={inv.displayName} />
+          </div>
+        ))}
+        {available.length > 5 && (
+          <div className="w-5 h-5 rounded-full border border-white bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <span className="text-[8px] text-gray-500 font-medium">
+              +{available.length - 5}
+            </span>
+          </div>
+        )}
+      </div>
+      <span className="text-xs text-gray-400">
+        {available.length}/{invitees.length} available
+      </span>
+    </div>
+  );
+}
+
 function VoteContent({ meetingId }: { meetingId: string }) {
   const { isInitialized, user } = useLiff();
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -250,45 +303,10 @@ function VoteContent({ meetingId }: { meetingId: string }) {
                     <p className="text-sm text-gray-600 mt-0.5">
                       {ranking.startTime} - {ranking.endTime}
                     </p>
-                    {(() => {
-                      const invitees = meeting.invitees ?? [];
-                      const missing = new Set(ranking.missingPersons ?? []);
-                      const available = invitees.filter(
-                        (inv) => !missing.has(inv.lineUserId)
-                      );
-                      return (
-                        <div className="flex items-center gap-1.5 mt-1.5">
-                          <div className="flex -space-x-1.5">
-                            {available.slice(0, 5).map((inv) => (
-                              <div
-                                key={inv.lineUserId}
-                                className="w-5 h-5 rounded-full border border-white overflow-hidden bg-gray-200 flex-shrink-0"
-                              >
-                                {inv.pictureUrl ? (
-                                  <img
-                                    src={inv.pictureUrl}
-                                    alt={inv.displayName}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full bg-gray-300" />
-                                )}
-                              </div>
-                            ))}
-                            {available.length > 5 && (
-                              <div className="w-5 h-5 rounded-full border border-white bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                <span className="text-[8px] text-gray-500 font-medium">
-                                  +{available.length - 5}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <span className="text-xs text-gray-400">
-                            {available.length}/{invitees.length} available
-                          </span>
-                        </div>
-                      );
-                    })()}
+                    <AvailabilityAvatars
+                      invitees={meeting.invitees ?? []}
+                      missingPersons={ranking.missingPersons}
+                    />
                   </div>
 
                   {/* Checkbox */}
