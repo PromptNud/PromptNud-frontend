@@ -100,21 +100,23 @@ export interface BusySlot {
 export interface SchedulingRanking {
   rank: number;
   date: string;
-  time: string;
+  dayName?: string;
+  startTime: string;
+  endTime: string;
   score: number;
-  availableCount: number;
-  totalCount: number;
-  availableMembers: string[];
-  reason: string;
+  attendance: string;
+  reasoning: string;
+  missingPersons?: string[];
+  tradeOff?: string;
 }
 
 export interface VoteSummarySlot {
   rank: number;
   date: string;
-  time: string;
+  startTime: string;
+  endTime: string;
   score: number;
-  availableCount: number;
-  totalCount: number;
+  attendance: string;
   voteCount: number;
   voterIds: string[];
 }
