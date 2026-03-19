@@ -202,7 +202,7 @@ function mapVoteSummary(raw: VoteSummaryRaw): VoteSummary {
   return {
     meetingId: raw.meeting_id,
     totalVoters: raw.total_voters,
-    slots: raw.slots.map((s): VoteSummarySlot => ({
+    slots: (raw.slots ?? []).map((s): VoteSummarySlot => ({
       rank: s.rank,
       date: s.date,
       time: s.time,

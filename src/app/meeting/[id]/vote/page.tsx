@@ -14,20 +14,31 @@ function VoteContent({ meetingId }: { meetingId: string }) {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [hasJoined, setHasJoined] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const joiningRef = useRef(false);
+  const joinAttemptsRef = useRef(0);
+  const MAX_JOIN_RETRIES = 3;
 
   // Auto-join meeting to link LINE user to invitee record
   useEffect(() => {
-    if (!user || hasJoined || joiningRef.current) return;
+    if (!user || hasJoined || joiningRef.current || joinAttemptsRef.current >= MAX_JOIN_RETRIES) return;
     joiningRef.current = true;
+    joinAttemptsRef.current += 1;
     api
       .joinMeeting(meetingId, user.userId, user.displayName)
-      .then(() => setHasJoined(true))
+      .then(() => {
+        setHasJoined(true);
+        setJoinError(null);
+      })
       .catch((err) => {
         if (err instanceof Error && /already joined/i.test(err.message)) {
           setHasJoined(true);
+          setJoinError(null);
+        } else if (joinAttemptsRef.current >= MAX_JOIN_RETRIES) {
+          setJoinError("Failed to join meeting. Please try again later.");
+        } else {
+          joiningRef.current = false;
         }
-        joiningRef.current = false;
       });
   }, [user, meetingId, hasJoined]);
 
@@ -186,6 +197,12 @@ function VoteContent({ meetingId }: { meetingId: string }) {
             {rankings.length} Options
           </span>
         </div>
+
+        {joinError && (
+          <div className="mb-4 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-700">
+            {joinError}
+          </div>
+        )}
 
         <div className="space-y-4">
           {rankings.map((ranking) => {
