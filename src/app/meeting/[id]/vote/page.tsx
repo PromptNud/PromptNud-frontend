@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLiff } from "@/hooks/useLiff";
 import { api, ApiError } from "@/lib/api";
 import { format, parse } from "date-fns";
@@ -62,6 +62,7 @@ function AvailabilityAvatars({
 
 function VoteContent({ meetingId }: { meetingId: string }) {
   const { isInitialized, user } = useLiff();
+  const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -83,6 +84,7 @@ function VoteContent({ meetingId }: { meetingId: string }) {
       .then(() => {
         setHasJoined(true);
         setJoinError(null);
+        queryClient.invalidateQueries({ queryKey: ["meeting", meetingId] });
       })
       .catch((err) => {
         if (err instanceof Error && /already joined/i.test(err.message)) {
