@@ -124,6 +124,8 @@ function Avatar({
   if (!pictureUrl || imgError) {
     return (
       <div
+        role="img"
+        aria-label={displayName}
         className={`${size} rounded-full bg-gray-200 flex items-center justify-center`}
       >
         <span className="text-xs font-bold text-gray-500">{initial}</span>
@@ -230,6 +232,9 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
   const invitees = meeting.invitees ?? [];
   const joinedCount = invitees.filter((i) => i.status === "joined").length;
   const isConfirmed = meeting.status === "confirmed";
+  const displayInvitees = isConfirmed
+    ? invitees.filter((i) => i.status === "joined")
+    : invitees;
   const MAX_AVATARS = 8;
 
   return (
@@ -242,11 +247,11 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
           {joinedCount}/{invitees.length} Joined
         </span>
       </div>
-      {invitees.length === 0 ? (
+      {displayInvitees.length === 0 ? (
         <p className="text-sm text-gray-400">No attendees yet</p>
       ) : (
         <div className="flex -space-x-2 overflow-hidden">
-          {invitees.slice(0, MAX_AVATARS).map((inv) => (
+          {displayInvitees.slice(0, MAX_AVATARS).map((inv) => (
             <div key={inv.id} className="relative">
               <div className="h-12 w-12 rounded-full ring-2 ring-white overflow-hidden">
                 <Avatar
@@ -264,10 +269,10 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
               )}
             </div>
           ))}
-          {invitees.length > MAX_AVATARS && (
+          {displayInvitees.length > MAX_AVATARS && (
             <div className="h-12 w-12 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center">
               <span className="text-xs font-semibold text-gray-500">
-                +{invitees.length - MAX_AVATARS}
+                +{displayInvitees.length - MAX_AVATARS}
               </span>
             </div>
           )}
@@ -348,12 +353,15 @@ function NotesCard({ notes }: { notes: string }) {
     <div className="bg-white p-5 rounded-xl shadow-sm border border-[#f98006]/10">
       <h3 className="font-bold mb-2">Additional Notes</h3>
       <p
+        id="notes-content"
         className={`text-sm text-gray-600 leading-relaxed ${expanded ? "" : "line-clamp-3"}`}
       >
         {notes}
       </p>
       <button
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-controls="notes-content"
         className="mt-3 flex items-center text-[#f98006] text-sm font-bold"
       >
         {expanded ? "Show Less" : "View Full Notes"}
@@ -471,6 +479,8 @@ function MeetingInfoContent({ meetingId }: { meetingId: string }) {
     queryKey: ["meeting", meetingId],
     queryFn: () => api.getMeeting(meetingId),
     enabled: isInitialized,
+    retry: (failureCount, error) =>
+      !(error instanceof ApiError && error.status === 404) && failureCount < 1,
   });
 
   if (!isInitialized || isLoading) {
