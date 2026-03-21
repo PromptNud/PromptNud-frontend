@@ -315,7 +315,7 @@ function ParametersCard({ meeting }: { meeting: Meeting }) {
             <div className="flex flex-wrap gap-2">
               {meeting.timeSlots.map((slot, i) => (
                 <span
-                  key={i}
+                  key={`${slot.start}-${slot.end}`}
                   className="bg-[#f98006]/10 text-[#f98006] px-3 py-1 rounded-full text-sm font-medium"
                 >
                   {slot.start} - {slot.end}
@@ -403,10 +403,15 @@ function ActionButtons({ meeting }: { meeting: Meeting }) {
 
     return (
       <div className="pt-4 space-y-3">
+        {/* TODO: Wire to AI location suggestions feature when implemented */}
         {meeting.locationMode === "recommend" && (
-          <button className="w-full bg-[#f98006] hover:bg-[#d66c00] text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95">
+          <button
+            disabled
+            aria-disabled="true"
+            className="w-full bg-[#f98006] text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
+          >
             <span className="material-symbols-outlined">auto_awesome</span>
-            AI Location Suggestions
+            AI Location Suggestions — Coming Soon
           </button>
         )}
         {calendarUrl && (
