@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { format, parse } from "date-fns";
 import Link from "next/link";
 import { useLiff } from "@/hooks/useLiff";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import type {
   Meeting,
   MeetingStatus,
@@ -313,7 +313,7 @@ function ParametersCard({ meeting }: { meeting: Meeting }) {
               Time Slots
             </span>
             <div className="flex flex-wrap gap-2">
-              {meeting.timeSlots.map((slot, i) => (
+              {meeting.timeSlots.map((slot) => (
                 <span
                   key={`${slot.start}-${slot.end}`}
                   className="bg-[#f98006]/10 text-[#f98006] px-3 py-1 rounded-full text-sm font-medium"
@@ -483,7 +483,8 @@ function MeetingInfoContent({ meetingId }: { meetingId: string }) {
 
   if (isError) {
     const is404 =
-      error instanceof Error && /not found/i.test(error.message);
+      (error instanceof ApiError && error.status === 404) ||
+      (error instanceof Error && /not found/i.test(error.message));
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#fdfaf6] px-6">
         <span className="material-symbols-outlined text-gray-300 text-6xl mb-4">
