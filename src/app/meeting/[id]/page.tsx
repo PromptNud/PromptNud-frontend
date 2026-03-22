@@ -102,9 +102,7 @@ function formatSelectedDateRange(dates: string[]): string {
 
 function formatTimeSlotsRange(timeSlots: { start: string; end: string }[]): string {
   if (timeSlots.length === 0) return "No time slots";
-  const starts = timeSlots.map((s) => s.start).sort();
-  const ends = timeSlots.map((s) => s.end).sort();
-  return `${starts[0]} - ${ends[ends.length - 1]}`;
+  return timeSlots.map((s) => `${s.start} - ${s.end}`).join(", ");
 }
 
 // --- Avatar ---
@@ -153,6 +151,7 @@ function StatusBadge({ status }: { status: MeetingStatus }) {
         className={`${config.pillBg} px-4 py-2 rounded-full flex items-center gap-2 shadow-md border-2 ${config.pillBorder}`}
       >
         <span
+          aria-hidden="true"
           className={`material-symbols-outlined ${config.pillText} text-sm font-bold`}
         >
           {config.icon}
@@ -198,25 +197,25 @@ function SummaryCard({ meeting }: { meeting: Meeting }) {
       <h2 className="text-xl font-bold mb-4">{meeting.title}</h2>
       <div className="space-y-3">
         <div className="flex items-center gap-3 text-gray-600">
-          <span className="material-symbols-outlined text-[#f98006] text-xl">
+          <span aria-hidden="true" className="material-symbols-outlined text-[#f98006] text-xl">
             calendar_today
           </span>
           <p className="text-sm font-medium">{dateDisplay}</p>
         </div>
         <div className="flex items-center gap-3 text-gray-600">
-          <span className="material-symbols-outlined text-[#f98006] text-xl">
+          <span aria-hidden="true" className="material-symbols-outlined text-[#f98006] text-xl">
             {typeInfo.icon}
           </span>
           <p className="text-sm font-medium">{typeInfo.label}</p>
         </div>
         <div className="flex items-center gap-3 text-gray-600">
-          <span className="material-symbols-outlined text-[#f98006] text-xl">
+          <span aria-hidden="true" className="material-symbols-outlined text-[#f98006] text-xl">
             schedule
           </span>
           <p className="text-sm font-medium">{timeDisplay}</p>
         </div>
         <div className="flex items-center gap-3 text-gray-600">
-          <span className="material-symbols-outlined text-[#f98006] text-xl">
+          <span aria-hidden="true" className="material-symbols-outlined text-[#f98006] text-xl">
             {loc.icon}
           </span>
           <p className="text-sm font-medium">{loc.text}</p>
@@ -262,7 +261,7 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
               </div>
               {inv.status === "joined" && (
                 <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white p-0.5">
-                  <span className="material-symbols-outlined text-[10px] text-white block">
+                  <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">
                     check
                   </span>
                 </span>
@@ -365,7 +364,7 @@ function NotesCard({ notes }: { notes: string }) {
         className="mt-3 flex items-center text-[#f98006] text-sm font-bold"
       >
         {expanded ? "Show Less" : "View Full Notes"}
-        <span className="material-symbols-outlined text-sm ml-1">
+        <span aria-hidden="true" className="material-symbols-outlined text-sm ml-1">
           {expanded ? "expand_less" : "chevron_right"}
         </span>
       </button>
@@ -385,7 +384,7 @@ function ActionButtons({ meeting }: { meeting: Meeting }) {
           href={`/meeting/${meeting.id}/availability`}
           className="w-full bg-[#f98006] hover:bg-[#d66c00] text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95"
         >
-          <span className="material-symbols-outlined">edit_calendar</span>
+          <span aria-hidden="true" className="material-symbols-outlined">edit_calendar</span>
           Submit Availability
         </Link>
       </div>
@@ -399,7 +398,7 @@ function ActionButtons({ meeting }: { meeting: Meeting }) {
           href={`/meeting/${meeting.id}/vote`}
           className="w-full bg-[#f98006] hover:bg-[#d66c00] text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95"
         >
-          <span className="material-symbols-outlined">how_to_vote</span>
+          <span aria-hidden="true" className="material-symbols-outlined">how_to_vote</span>
           Vote Now
         </Link>
       </div>
@@ -418,7 +417,7 @@ function ActionButtons({ meeting }: { meeting: Meeting }) {
             aria-disabled="true"
             className="w-full bg-[#f98006] text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
           >
-            <span className="material-symbols-outlined">auto_awesome</span>
+            <span aria-hidden="true" className="material-symbols-outlined">auto_awesome</span>
             AI Location Suggestions — Coming Soon
           </button>
         )}
@@ -429,7 +428,7 @@ function ActionButtons({ meeting }: { meeting: Meeting }) {
             rel="noopener noreferrer"
             className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95"
           >
-            <span className="material-symbols-outlined">calendar_add_on</span>
+            <span aria-hidden="true" className="material-symbols-outlined">calendar_add_on</span>
             Add to Calendar
           </a>
         )}
