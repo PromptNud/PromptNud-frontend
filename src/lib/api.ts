@@ -1,5 +1,5 @@
 import { createApiHeaders, getApiBaseUrl } from "@/utils/apiHeaders";
-import type { Meeting, CreateMeetingRequest, AvailableSlot, BusySlot, MeetingListItem, MeetingStatus, MeetingTypeEnum, LocationMode, SchedulingRanking, VoteSummary, VoteSummarySlot } from "@/types/meeting";
+import type { Meeting, CreateMeetingRequest, AvailableSlot, BusySlot, MeetingListItem, MeetingStatus, MeetingTypeEnum, LocationMode, SchedulingRanking, VoteSummary, VoteSummarySlot, VenueResult, VenueRanking } from "@/types/meeting";
 
 // --- Raw snake_case response types matching backend JSON ---
 
@@ -21,6 +21,7 @@ interface MeetingRaw {
   datetime_start?: string;
   datetime_end?: string;
   rankings?: SchedulingRankingRaw[];
+  venue_recommendations?: VenueResultRaw;
   invitees?: InviteeRaw[];
   created_at: string;
   updated_at: string;
@@ -87,6 +88,26 @@ interface SchedulingRankingRaw {
   trade_off?: string;
 }
 
+interface VenueRankingRaw {
+  rank: number;
+  name: string;
+  place_id: string;
+  rating: number;
+  price_label?: string;
+  distance_km?: number;
+  score: number;
+  rationale: string;
+  highlights?: string[];
+  concerns?: string[];
+  vegetarian_friendly?: boolean;
+}
+
+interface VenueResultRaw {
+  rankings: VenueRankingRaw[];
+  refinement_used: string;
+  suggestion: string;
+}
+
 interface VoteSummarySlotRaw {
   rank: number;
   date: string;
@@ -139,6 +160,7 @@ function mapMeeting(raw: MeetingRaw): Meeting {
     datetimeStart: raw.datetime_start,
     datetimeEnd: raw.datetime_end,
     rankings: raw.rankings?.map(mapSchedulingRanking),
+    venueRecommendations: raw.venue_recommendations ? mapVenueResult(raw.venue_recommendations) : undefined,
     invitees: raw.invitees?.map(mapInvitee),
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
@@ -218,6 +240,30 @@ function mapVoteSummary(raw: VoteSummaryRaw): VoteSummary {
       voteCount: s.vote_count,
       voterIds: s.voter_ids,
     })),
+  };
+}
+
+function mapVenueRanking(raw: VenueRankingRaw): VenueRanking {
+  return {
+    rank: raw.rank,
+    name: raw.name,
+    placeId: raw.place_id,
+    rating: raw.rating,
+    priceLabel: raw.price_label,
+    distanceKm: raw.distance_km,
+    score: raw.score,
+    rationale: raw.rationale,
+    highlights: raw.highlights,
+    concerns: raw.concerns,
+    vegetarianFriendly: raw.vegetarian_friendly,
+  };
+}
+
+function mapVenueResult(raw: VenueResultRaw): VenueResult {
+  return {
+    rankings: (raw.rankings ?? []).map(mapVenueRanking),
+    refinementUsed: raw.refinement_used,
+    suggestion: raw.suggestion,
   };
 }
 
@@ -391,6 +437,31 @@ class ApiClient {
   async getVoteSummary(meetingId: string): Promise<{ data: VoteSummary }> {
     const res = await this.fetch<{ data: VoteSummaryRaw }>(`/meetings/${meetingId}/votes`);
     return { data: mapVoteSummary(res.data) };
+  }
+
+  // Venue recommendations
+  async getVenueRecommendations(meetingId: string): Promise<{ data: VenueResult | null }> {
+    const res = await this.fetch<{ data: VenueResultRaw | { status: string; message: string } }>(`/meetings/${meetingId}/venue`);
+    // Backend returns { status: "pending" } when not ready yet
+    if ("status" in res.data && (res.data as { status: string }).status === "pending") {
+      return { data: null };
+    }
+    return { data: mapVenueResult(res.data as VenueResultRaw) };
+  }
+
+  async refineVenueRecommendations(meetingId: string, refinement: string): Promise<{ data: VenueResult }> {
+    const res = await this.fetch<{ data: VenueResultRaw }>(`/meetings/${meetingId}/venue/refine`, {
+      method: "POST",
+      body: JSON.stringify({ refinement }),
+    });
+    return { data: mapVenueResult(res.data) };
+  }
+
+  async selectVenue(meetingId: string, venueName: string) {
+    return this.fetch<{ data: { message: string } }>(`/meetings/${meetingId}/venue/select`, {
+      method: "POST",
+      body: JSON.stringify({ venue_name: venueName }),
+    });
   }
 
   // Locations

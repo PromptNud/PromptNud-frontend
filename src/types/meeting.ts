@@ -29,6 +29,7 @@ export interface Meeting {
   datetimeStart?: string;
   datetimeEnd?: string;
   rankings?: SchedulingRanking[];
+  venueRecommendations?: VenueResult;
   invitees?: {
     id: string;
     userId?: string;
@@ -109,6 +110,26 @@ export interface SchedulingRanking {
   reasoning: string;
   missingPersons?: string[];
   tradeOff?: string;
+}
+
+export interface VenueRanking {
+  rank: number;
+  name: string;
+  placeId: string;
+  rating: number;
+  priceLabel?: string;
+  distanceKm?: number;
+  score: number;
+  rationale: string;
+  highlights?: string[];
+  concerns?: string[];
+  vegetarianFriendly?: boolean;
+}
+
+export interface VenueResult {
+  rankings: VenueRanking[];
+  refinementUsed: string;
+  suggestion: string;
 }
 
 export interface VoteSummarySlot {
