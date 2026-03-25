@@ -1,8 +1,8 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import type { Meeting, VenueResult, VenueRanking, MeetingTypeEnum } from "@/types/meeting";
 
 // --- Refinement configs per meeting type ---
@@ -46,11 +46,20 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
   const queryClient = useQueryClient();
   const [activeRefinement, setActiveRefinement] = useState("balanced");
 
-  // Fetch meeting details
-  const { data: meeting, isLoading: meetingLoading } = useQuery({
+  // Fetch meeting details — same cache shape as the detail page (stores { data: Meeting })
+  const {
+    data: meetingData,
+    isLoading: meetingLoading,
+    isError: meetingIsError,
+    error: meetingError,
+  } = useQuery({
     queryKey: ["meeting", meetingId],
-    queryFn: () => api.getMeeting(meetingId).then((r) => r.data),
+    queryFn: () => api.getMeeting(meetingId),
+    retry: (failureCount, error) =>
+      !(error instanceof ApiError && error.status === 404) && failureCount < 1,
   });
+
+  const meeting = meetingData?.data;
 
   // Fetch venue recommendations
   const {
@@ -90,6 +99,14 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
     queryFn: () => api.getMe().then((r) => r.data),
   });
 
+  // Sync activeRefinement from loaded/cached venue results
+  const displayResult = refineMutation.data ?? venueResult;
+  useEffect(() => {
+    if (displayResult?.refinementUsed) {
+      setActiveRefinement(displayResult.refinementUsed);
+    }
+  }, [displayResult?.refinementUsed]);
+
   const isCurrentUserOrganizer = currentUser && meeting && currentUser.id === meeting.organizerUserId;
 
   const refinements = meeting ? getRefinements(meeting.type) : MEAL_REFINEMENTS;
@@ -100,6 +117,27 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
     return <LoadingSkeleton />;
   }
 
+  if (meetingIsError) {
+    const is404 =
+      (meetingError instanceof ApiError && meetingError.status === 404) ||
+      (meetingError instanceof Error && /not found/i.test(meetingError.message));
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#FCF9F5] px-6">
+        <span className="material-symbols-outlined text-gray-300 text-6xl mb-4">
+          {is404 ? "event_busy" : "cloud_off"}
+        </span>
+        <p className="text-gray-600 font-medium">
+          {is404 ? "Meeting not found" : "Failed to load meeting"}
+        </p>
+        <p className="text-gray-400 text-sm mt-1">
+          {is404
+            ? "This meeting may have been deleted."
+            : "Please check your connection and try again."}
+        </p>
+      </div>
+    );
+  }
+
   if (!meeting) {
     return (
       <div className="min-h-screen bg-[#FCF9F5] flex items-center justify-center p-6">
@@ -107,8 +145,6 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
       </div>
     );
   }
-
-  const displayResult = refineMutation.data ?? venueResult;
 
   return (
     <div className="min-h-screen bg-[#FCF9F5] pb-10">
