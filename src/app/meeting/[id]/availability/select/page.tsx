@@ -191,19 +191,29 @@ function SelectContent({ meetingId }: { meetingId: string }) {
   }, []);
 
   const handleSelectAll = () => {
-    const allDates = meeting?.selectedDates ?? [];
     const allHours = generateHours(meeting?.timeSlots ?? []);
-    const all = new Set<string>();
-    for (const d of allDates) {
-      for (const h of allHours) {
-        all.add(`${d}|${h}`);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const d of currentDates) {
+        for (const h of allHours) {
+          next.add(`${d}|${h}`);
+        }
       }
-    }
-    setSelected(all);
+      return next;
+    });
   };
 
   const handleClearAll = () => {
-    setSelected(new Set());
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const key of prev) {
+        const date = key.split("|")[0];
+        if (currentDates.includes(date)) {
+          next.delete(key);
+        }
+      }
+      return next;
+    });
   };
 
   const handleSyncCalendar = async () => {
