@@ -410,16 +410,14 @@ function ActionButtons({ meeting }: { meeting: Meeting }) {
 
     return (
       <div className="pt-4 space-y-3">
-        {/* TODO: Wire to AI location suggestions feature when implemented */}
         {meeting.locationMode === "recommend" && (
-          <button
-            disabled
-            aria-disabled="true"
-            className="w-full bg-[#f98006] text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
+          <Link
+            href={`/meeting/${meeting.id}/venue`}
+            className="w-full bg-[#f98006] hover:bg-[#d66c00] text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95"
           >
             <span aria-hidden="true" className="material-symbols-outlined">auto_awesome</span>
-            AI Location Suggestions — Coming Soon
-          </button>
+            {meeting.venueRecommendations ? "View Venue Suggestions" : "AI Location Suggestions"}
+          </Link>
         )}
         {calendarUrl && (
           <a
