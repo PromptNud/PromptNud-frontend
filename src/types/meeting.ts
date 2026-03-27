@@ -15,6 +15,9 @@ export interface Meeting {
   id: string;
   title: string;
   organizerUserId: string;
+  organizerDisplayName: string;
+  organizerPictureUrl?: string;
+  organizerHasSubmittedAvailability: boolean;
   lineGroupId: string;
   status: MeetingStatus;
   type: MeetingTypeEnum;
@@ -25,6 +28,7 @@ export interface Meeting {
   timeSlots: TimeSlot[];
   memberMode: string;
   memberLineUserIds?: string[];
+  groupMemberCount: number;
   notes?: string;
   datetimeStart?: string;
   datetimeEnd?: string;
@@ -37,6 +41,7 @@ export interface Meeting {
     displayName: string;
     pictureUrl?: string;
     status: string;
+    hasSubmittedAvailability: boolean;
     createdAt: string;
   }[];
   createdAt: string;
@@ -81,6 +86,7 @@ export interface MeetingListItem {
   location?: string;
   selectedDates: string[];
   memberMode: string;
+  groupMemberCount: number;
   notes?: string;
   datetimeStart?: string;
   datetimeEnd?: string;

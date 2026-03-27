@@ -229,12 +229,20 @@ function SummaryCard({ meeting }: { meeting: Meeting }) {
 
 function AttendeesCard({ meeting }: { meeting: Meeting }) {
   const invitees = meeting.invitees ?? [];
-  const joinedCount = invitees.filter((i) => i.status === "joined").length;
+  const isCollecting = meeting.status === "collecting";
   const isConfirmed = meeting.status === "confirmed";
   const displayInvitees = isConfirmed
     ? invitees.filter((i) => i.status === "joined")
     : invitees;
   const MAX_AVATARS = 8;
+
+  // Count submitted availabilities (organizer + invitees) during collecting phase
+  const submittedCount = isCollecting
+    ? (meeting.organizerHasSubmittedAvailability ? 1 : 0) +
+      invitees.filter((i) => i.hasSubmittedAvailability).length
+    : 0;
+  const totalMembers = meeting.groupMemberCount || invitees.length + 1; // +1 for organizer
+  const joinedCount = invitees.filter((i) => i.status === "joined").length;
 
   return (
     <div className="bg-white p-5 rounded-xl shadow-sm border border-[#f98006]/10">
@@ -242,36 +250,80 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
         <h3 className="font-bold">
           {isConfirmed ? "Confirmed Attendees" : "Attendees"}
         </h3>
-        <span className="text-emerald-600 text-xs font-semibold bg-emerald-50 px-2 py-1 rounded">
-          {joinedCount}/{invitees.length} Joined
-        </span>
+        {isCollecting ? (
+          <span className="text-amber-600 text-xs font-semibold bg-amber-50 px-2 py-1 rounded">
+            {submittedCount}/{totalMembers} Submitted
+          </span>
+        ) : (
+          <span className="text-emerald-600 text-xs font-semibold bg-emerald-50 px-2 py-1 rounded">
+            {joinedCount}/{invitees.length} Joined
+          </span>
+        )}
       </div>
-      {displayInvitees.length === 0 ? (
+      {displayInvitees.length === 0 && !meeting.organizerDisplayName ? (
         <p className="text-sm text-gray-400">No attendees yet</p>
       ) : (
         <div className="flex -space-x-2 overflow-hidden">
-          {displayInvitees.slice(0, MAX_AVATARS).map((inv) => (
+          {/* Organizer avatar (always first) */}
+          {meeting.organizerDisplayName && (
+            <div className="relative">
+              <div className={`h-12 w-12 rounded-full ring-2 ring-white overflow-hidden ${isCollecting && !meeting.organizerHasSubmittedAvailability ? "opacity-50" : ""}`}>
+                <Avatar
+                  pictureUrl={meeting.organizerPictureUrl}
+                  displayName={meeting.organizerDisplayName}
+                  size="h-12 w-12"
+                />
+              </div>
+              {isCollecting ? (
+                meeting.organizerHasSubmittedAvailability ? (
+                  <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white p-0.5">
+                    <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">check</span>
+                  </span>
+                ) : (
+                  <span className="absolute bottom-0 right-0 bg-amber-500 rounded-full border border-white p-0.5">
+                    <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">schedule</span>
+                  </span>
+                )
+              ) : (
+                <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white p-0.5">
+                  <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">check</span>
+                </span>
+              )}
+            </div>
+          )}
+          {/* Invitee avatars */}
+          {displayInvitees.slice(0, meeting.organizerDisplayName ? MAX_AVATARS - 1 : MAX_AVATARS).map((inv) => (
             <div key={inv.id} className="relative">
-              <div className="h-12 w-12 rounded-full ring-2 ring-white overflow-hidden">
+              <div className={`h-12 w-12 rounded-full ring-2 ring-white overflow-hidden ${isCollecting && !inv.hasSubmittedAvailability ? "opacity-50" : ""}`}>
                 <Avatar
                   pictureUrl={inv.pictureUrl}
                   displayName={inv.displayName}
                   size="h-12 w-12"
                 />
               </div>
-              {inv.status === "joined" && (
-                <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white p-0.5">
-                  <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">
-                    check
+              {isCollecting ? (
+                inv.hasSubmittedAvailability ? (
+                  <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white p-0.5">
+                    <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">check</span>
                   </span>
-                </span>
+                ) : (
+                  <span className="absolute bottom-0 right-0 bg-amber-500 rounded-full border border-white p-0.5">
+                    <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">schedule</span>
+                  </span>
+                )
+              ) : (
+                inv.status === "joined" && (
+                  <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white p-0.5">
+                    <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">check</span>
+                  </span>
+                )
               )}
             </div>
           ))}
-          {displayInvitees.length > MAX_AVATARS && (
+          {displayInvitees.length > (meeting.organizerDisplayName ? MAX_AVATARS - 1 : MAX_AVATARS) && (
             <div className="h-12 w-12 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center">
               <span className="text-xs font-semibold text-gray-500">
-                +{displayInvitees.length - MAX_AVATARS}
+                +{displayInvitees.length - (meeting.organizerDisplayName ? MAX_AVATARS - 1 : MAX_AVATARS)}
               </span>
             </div>
           )}

@@ -7,6 +7,9 @@ interface MeetingRaw {
   id: string;
   title: string;
   organizer_user_id: string;
+  organizer_display_name: string;
+  organizer_picture_url?: string;
+  organizer_has_submitted_availability: boolean;
   line_group_id: string;
   status: string;
   type: string;
@@ -17,6 +20,7 @@ interface MeetingRaw {
   time_slots: { start: string; end: string }[];
   member_mode: string;
   member_line_user_ids?: string[];
+  group_member_count: number;
   notes?: string;
   datetime_start?: string;
   datetime_end?: string;
@@ -34,6 +38,7 @@ interface InviteeRaw {
   display_name: string;
   picture_url?: string;
   status: string;
+  has_submitted_availability: boolean;
   created_at: string;
 }
 
@@ -67,6 +72,7 @@ interface MeetingListItemRaw {
   location?: string;
   selected_dates: string[];
   member_mode: string;
+  group_member_count: number;
   notes?: string;
   datetime_start?: string;
   datetime_end?: string;
@@ -146,6 +152,9 @@ function mapMeeting(raw: MeetingRaw): Meeting {
     id: raw.id,
     title: raw.title,
     organizerUserId: raw.organizer_user_id,
+    organizerDisplayName: raw.organizer_display_name,
+    organizerPictureUrl: raw.organizer_picture_url,
+    organizerHasSubmittedAvailability: raw.organizer_has_submitted_availability ?? false,
     lineGroupId: raw.line_group_id,
     status: raw.status as MeetingStatus,
     type: raw.type as MeetingTypeEnum,
@@ -156,6 +165,7 @@ function mapMeeting(raw: MeetingRaw): Meeting {
     timeSlots: raw.time_slots ?? [],
     memberMode: raw.member_mode,
     memberLineUserIds: raw.member_line_user_ids,
+    groupMemberCount: raw.group_member_count,
     notes: raw.notes,
     datetimeStart: raw.datetime_start,
     datetimeEnd: raw.datetime_end,
@@ -190,6 +200,7 @@ function mapMeetingListItem(raw: MeetingListItemRaw): MeetingListItem {
     location: raw.location,
     selectedDates: raw.selected_dates ?? [],
     memberMode: raw.member_mode,
+    groupMemberCount: raw.group_member_count,
     notes: raw.notes,
     datetimeStart: raw.datetime_start,
     datetimeEnd: raw.datetime_end,
@@ -207,6 +218,7 @@ function mapInvitee(raw: InviteeRaw) {
     displayName: raw.display_name,
     pictureUrl: raw.picture_url,
     status: raw.status,
+    hasSubmittedAvailability: raw.has_submitted_availability ?? false,
     createdAt: raw.created_at,
   };
 }
