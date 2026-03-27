@@ -236,16 +236,19 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
     : invitees;
   const MAX_AVATARS = 8;
 
+  const hasOrganizer = !!meeting.organizerDisplayName;
+
   // Count submitted availabilities (organizer + invitees) during collecting phase
   const submittedCount = isCollecting
-    ? (meeting.organizerHasSubmittedAvailability ? 1 : 0) +
+    ? (hasOrganizer && meeting.organizerHasSubmittedAvailability ? 1 : 0) +
       invitees.filter((i) => i.hasSubmittedAvailability).length
     : 0;
-  const totalMembers = meeting.groupMemberCount ?? invitees.length + 1; // +1 for organizer
-  const joinedCount = invitees.filter((i) => i.status === "joined").length;
-  const hasOrganizer = !!meeting.organizerDisplayName;
-  const displayedJoined = joinedCount + (hasOrganizer ? 1 : 0);
-  const displayedTotal = invitees.length + (hasOrganizer ? 1 : 0);
+  const totalMembers =
+    meeting.groupMemberCount ?? invitees.length + (hasOrganizer ? 1 : 0);
+  const displayedJoined =
+    displayInvitees.filter((i) => i.status === "joined").length +
+    (hasOrganizer ? 1 : 0);
+  const displayedTotal = displayInvitees.length + (hasOrganizer ? 1 : 0);
 
   return (
     <div className="bg-white p-5 rounded-xl shadow-sm border border-[#f98006]/10">
