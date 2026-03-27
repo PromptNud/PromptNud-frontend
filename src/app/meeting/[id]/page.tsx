@@ -241,7 +241,7 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
     ? (meeting.organizerHasSubmittedAvailability ? 1 : 0) +
       invitees.filter((i) => i.hasSubmittedAvailability).length
     : 0;
-  const totalMembers = meeting.groupMemberCount || invitees.length + 1; // +1 for organizer
+  const totalMembers = meeting.groupMemberCount ?? invitees.length + 1; // +1 for organizer
   const joinedCount = invitees.filter((i) => i.status === "joined").length;
   const hasOrganizer = !!meeting.organizerDisplayName;
   const displayedJoined = joinedCount + (hasOrganizer ? 1 : 0);
@@ -312,6 +312,16 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
                   size="h-12 w-12"
                 />
               </div>
+              <span className="sr-only">
+                {inv.displayName},{" "}
+                {isCollecting
+                  ? inv.hasSubmittedAvailability
+                    ? "Submitted"
+                    : "Pending"
+                  : inv.status === "joined"
+                    ? "Joined"
+                    : "Invited"}
+              </span>
               {isCollecting ? (
                 inv.hasSubmittedAvailability ? (
                   <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white p-0.5">
