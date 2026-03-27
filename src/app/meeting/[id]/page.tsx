@@ -243,6 +243,9 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
     : 0;
   const totalMembers = meeting.groupMemberCount || invitees.length + 1; // +1 for organizer
   const joinedCount = invitees.filter((i) => i.status === "joined").length;
+  const hasOrganizer = !!meeting.organizerDisplayName;
+  const displayedJoined = joinedCount + (hasOrganizer ? 1 : 0);
+  const displayedTotal = invitees.length + (hasOrganizer ? 1 : 0);
 
   return (
     <div className="bg-white p-5 rounded-xl shadow-sm border border-[#f98006]/10">
@@ -256,7 +259,7 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
           </span>
         ) : (
           <span className="text-emerald-600 text-xs font-semibold bg-emerald-50 px-2 py-1 rounded">
-            {joinedCount}/{invitees.length} Joined
+            {displayedJoined}/{displayedTotal} Joined
           </span>
         )}
       </div>
@@ -274,6 +277,14 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
                   size="h-12 w-12"
                 />
               </div>
+              <span className="sr-only">
+                {meeting.organizerDisplayName},{" "}
+                {isCollecting
+                  ? meeting.organizerHasSubmittedAvailability
+                    ? "Submitted"
+                    : "Pending"
+                  : "Joined"}
+              </span>
               {isCollecting ? (
                 meeting.organizerHasSubmittedAvailability ? (
                   <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white p-0.5">
