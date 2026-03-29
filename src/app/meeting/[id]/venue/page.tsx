@@ -45,6 +45,7 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
   const { id: meetingId } = use(params);
   const queryClient = useQueryClient();
   const [activeRefinement, setActiveRefinement] = useState("balanced");
+  const [currentPage, setCurrentPage] = useState(0);
 
   // Fetch meeting details — same cache shape as the detail page (stores { data: Meeting })
   const {
@@ -77,11 +78,12 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
 
   // Refine mutation
   const refineMutation = useMutation({
-    mutationFn: (refinement: string) =>
-      api.refineVenueRecommendations(meetingId, refinement).then((r) => r.data),
+    mutationFn: ({ refinement, page }: { refinement: string; page: number }) =>
+      api.refineVenueRecommendations(meetingId, refinement, page).then((r) => r.data),
     onSuccess: (data) => {
       queryClient.setQueryData(["venue", meetingId], data);
       setActiveRefinement(data.refinementUsed);
+      setCurrentPage(data.currentPage);
     },
   });
 
@@ -99,13 +101,16 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
     queryFn: () => api.getMe().then((r) => r.data),
   });
 
-  // Sync activeRefinement from loaded/cached venue results
+  // Sync local state from loaded/cached venue results
   const displayResult = refineMutation.data ?? venueResult;
   useEffect(() => {
     if (displayResult?.refinementUsed) {
       setActiveRefinement(displayResult.refinementUsed);
     }
-  }, [displayResult?.refinementUsed]);
+    if (displayResult?.currentPage != null) {
+      setCurrentPage(displayResult.currentPage);
+    }
+  }, [displayResult?.refinementUsed, displayResult?.currentPage]);
 
   const isCurrentUserOrganizer = currentUser && meeting && currentUser.id === meeting.organizerUserId;
 
@@ -173,12 +178,21 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
             <span className="text-sm font-bold text-gray-800">Refine Suggestions</span>
           </div>
           <button
-            onClick={() => refineMutation.mutate(activeRefinement)}
-            disabled={isRefining}
+            onClick={() => {
+              const totalPages = displayResult?.totalPages ?? 1;
+              const previousPage = currentPage;
+              const nextPage = Math.min(currentPage + 1, totalPages - 1);
+              setCurrentPage(nextPage);
+              refineMutation.mutate(
+                { refinement: activeRefinement, page: nextPage },
+                { onError: () => setCurrentPage(previousPage) },
+              );
+            }}
+            disabled={isRefining || currentPage >= (displayResult?.totalPages ?? 1) - 1}
             className="flex items-center gap-1.5 bg-[#FF8C00]/10 text-[#FF8C00] px-3 py-1.5 rounded-full text-xs font-bold transition-colors active:scale-95 disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-sm">refresh</span>
-            Refresh
+            {currentPage < (displayResult?.totalPages ?? 1) - 1 ? "More" : "No More"}
           </button>
         </div>
         <div className="flex overflow-x-auto gap-2 pb-2 hide-scrollbar">
@@ -186,8 +200,14 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
             <button
               key={r.key}
               onClick={() => {
+                const prevRefinement = activeRefinement;
+                const prevPage = currentPage;
                 setActiveRefinement(r.key);
-                refineMutation.mutate(r.key);
+                setCurrentPage(0);
+                refineMutation.mutate(
+                  { refinement: r.key, page: 0 },
+                  { onError: () => { setActiveRefinement(prevRefinement); setCurrentPage(prevPage); } },
+                );
               }}
               disabled={isRefining}
               className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-sm active:scale-95 transition-transform text-xs font-medium disabled:opacity-50 ${
@@ -235,6 +255,11 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
                 isSelected={meeting.location === venue.name && venueSelected}
               />
             ))}
+            {displayResult.totalPages > 1 && (
+              <p className="text-xs text-gray-400 text-center">
+                Page {displayResult.currentPage + 1} of {displayResult.totalPages}
+              </p>
+            )}
             {displayResult.suggestion && (
               <p className="text-xs text-gray-400 text-center italic px-4">
                 {displayResult.suggestion}
