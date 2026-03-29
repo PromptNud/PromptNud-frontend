@@ -101,13 +101,16 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
     queryFn: () => api.getMe().then((r) => r.data),
   });
 
-  // Sync activeRefinement from loaded/cached venue results
+  // Sync local state from loaded/cached venue results
   const displayResult = refineMutation.data ?? venueResult;
   useEffect(() => {
     if (displayResult?.refinementUsed) {
       setActiveRefinement(displayResult.refinementUsed);
     }
-  }, [displayResult?.refinementUsed]);
+    if (displayResult?.currentPage != null) {
+      setCurrentPage(displayResult.currentPage);
+    }
+  }, [displayResult?.refinementUsed, displayResult?.currentPage]);
 
   const isCurrentUserOrganizer = currentUser && meeting && currentUser.id === meeting.organizerUserId;
 
