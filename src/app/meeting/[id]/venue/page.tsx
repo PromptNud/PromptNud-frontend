@@ -180,9 +180,13 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
           <button
             onClick={() => {
               const totalPages = displayResult?.totalPages ?? 1;
+              const previousPage = currentPage;
               const nextPage = Math.min(currentPage + 1, totalPages - 1);
               setCurrentPage(nextPage);
-              refineMutation.mutate({ refinement: activeRefinement, page: nextPage });
+              refineMutation.mutate(
+                { refinement: activeRefinement, page: nextPage },
+                { onError: () => setCurrentPage(previousPage) },
+              );
             }}
             disabled={isRefining || currentPage >= (displayResult?.totalPages ?? 1) - 1}
             className="flex items-center gap-1.5 bg-[#FF8C00]/10 text-[#FF8C00] px-3 py-1.5 rounded-full text-xs font-bold transition-colors active:scale-95 disabled:opacity-50"
@@ -196,9 +200,14 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
             <button
               key={r.key}
               onClick={() => {
+                const prevRefinement = activeRefinement;
+                const prevPage = currentPage;
                 setActiveRefinement(r.key);
                 setCurrentPage(0);
-                refineMutation.mutate({ refinement: r.key, page: 0 });
+                refineMutation.mutate(
+                  { refinement: r.key, page: 0 },
+                  { onError: () => { setActiveRefinement(prevRefinement); setCurrentPage(prevPage); } },
+                );
               }}
               disabled={isRefining}
               className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-sm active:scale-95 transition-transform text-xs font-medium disabled:opacity-50 ${
