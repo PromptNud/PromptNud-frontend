@@ -136,6 +136,8 @@ export interface VenueResult {
   rankings: VenueRanking[];
   refinementUsed: string;
   suggestion: string;
+  currentPage: number;
+  totalPages: number;
 }
 
 export interface VoteSummarySlot {

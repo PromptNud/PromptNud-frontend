@@ -112,6 +112,8 @@ interface VenueResultRaw {
   rankings: VenueRankingRaw[];
   refinement_used: string;
   suggestion: string;
+  current_page: number;
+  total_pages: number;
 }
 
 interface VoteSummarySlotRaw {
@@ -276,6 +278,8 @@ function mapVenueResult(raw: VenueResultRaw): VenueResult {
     rankings: (raw.rankings ?? []).map(mapVenueRanking),
     refinementUsed: raw.refinement_used,
     suggestion: raw.suggestion,
+    currentPage: raw.current_page ?? 0,
+    totalPages: raw.total_pages ?? 1,
   };
 }
 
@@ -452,8 +456,8 @@ class ApiClient {
   }
 
   // Venue recommendations
-  async getVenueRecommendations(meetingId: string): Promise<{ data: VenueResult | null }> {
-    const res = await this.fetch<{ data: VenueResultRaw | { status: string; message: string } }>(`/meetings/${meetingId}/venue`);
+  async getVenueRecommendations(meetingId: string, page = 0): Promise<{ data: VenueResult | null }> {
+    const res = await this.fetch<{ data: VenueResultRaw | { status: string; message: string } }>(`/meetings/${meetingId}/venue?page=${page}`);
     // Backend returns { status: "pending" } when not ready yet
     if ("status" in res.data && (res.data as { status: string }).status === "pending") {
       return { data: null };
@@ -461,10 +465,10 @@ class ApiClient {
     return { data: mapVenueResult(res.data as VenueResultRaw) };
   }
 
-  async refineVenueRecommendations(meetingId: string, refinement: string): Promise<{ data: VenueResult }> {
+  async refineVenueRecommendations(meetingId: string, refinement: string, page = 0): Promise<{ data: VenueResult }> {
     const res = await this.fetch<{ data: VenueResultRaw }>(`/meetings/${meetingId}/venue/refine`, {
       method: "POST",
-      body: JSON.stringify({ refinement }),
+      body: JSON.stringify({ refinement, page }),
     });
     return { data: mapVenueResult(res.data) };
   }
