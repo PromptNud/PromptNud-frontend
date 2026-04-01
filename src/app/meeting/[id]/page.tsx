@@ -141,6 +141,22 @@ function Avatar({
   );
 }
 
+function CheckBadge({ className }: { className?: string } = {}) {
+  return (
+    <span className={`absolute -bottom-0.5 -right-0.5 ${className ?? "bg-emerald-500"} rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center`}>
+      <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+    </span>
+  );
+}
+
+function PendingBadge() {
+  return (
+    <span className="absolute -bottom-0.5 -right-0.5 bg-amber-500 rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center">
+      <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><circle cx="12" cy="12" r="9" /><path strokeLinecap="round" d="M12 7v5l3 3" /></svg>
+    </span>
+  );
+}
+
 // --- Status Badge ---
 
 function StatusBadge({ status }: { status: MeetingStatus }) {
@@ -291,18 +307,12 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
               </span>
               {isCollecting ? (
                 meeting.organizerHasSubmittedAvailability ? (
-                  <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center">
-                    <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                  </span>
+                  <CheckBadge />
                 ) : (
-                  <span className="absolute -bottom-0.5 -right-0.5 bg-amber-500 rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center">
-                    <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><circle cx="12" cy="12" r="9" /><path strokeLinecap="round" d="M12 7v5l3 3" /></svg>
-                  </span>
+                  <PendingBadge />
                 )
               ) : (
-                <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center">
-                  <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                </span>
+                <CheckBadge />
               )}
             </div>
           )}
@@ -328,20 +338,12 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
               </span>
               {isCollecting ? (
                 inv.hasSubmittedAvailability ? (
-                  <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center">
-                    <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                  </span>
+                  <CheckBadge />
                 ) : (
-                  <span className="absolute -bottom-0.5 -right-0.5 bg-amber-500 rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center">
-                    <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><circle cx="12" cy="12" r="9" /><path strokeLinecap="round" d="M12 7v5l3 3" /></svg>
-                  </span>
+                  <PendingBadge />
                 )
               ) : (
-                inv.status === "joined" && (
-                  <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center">
-                    <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                  </span>
-                )
+                inv.status === "joined" && <CheckBadge />
               )}
             </div>
           ))}
