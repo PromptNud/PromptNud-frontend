@@ -161,7 +161,7 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
           </p>
           <h1 className="text-white text-2xl font-bold mb-3">{meeting.title}</h1>
         </div>
-        <div className="flex items-center justify-center gap-4 text-white">
+        <div className="flex flex-wrap items-center justify-center gap-4 text-white">
           <InfoBadge label="Type" value={meeting.type} />
           <div className="h-6 w-[1px] bg-white opacity-30" />
           <InfoBadge label="Duration" value={`${meeting.durationMinutes} min`} />
@@ -294,9 +294,9 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
 
 function InfoBadge({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col min-w-0 max-w-[120px]">
       <span className="text-[9px] uppercase tracking-wider font-bold opacity-70">{label}</span>
-      <span className="text-[13px] font-medium capitalize">{value}</span>
+      <span className="text-[13px] font-medium capitalize truncate">{value}</span>
     </div>
   );
 }
