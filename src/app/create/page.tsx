@@ -297,7 +297,7 @@ function CreateMeetingContent() {
   const createMeeting = useMutation({
     mutationFn: (data: CreateMeetingRequest) => api.createMeeting(data),
     onSuccess: () => {
-      router.push("/");
+      router.push(groupId ? `/?groupId=${encodeURIComponent(groupId)}` : "/");
     },
   });
 
