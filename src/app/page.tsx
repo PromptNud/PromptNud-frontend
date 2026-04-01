@@ -131,6 +131,10 @@ function filterMeetings(
       return meetings.filter(
         (m) => m.status === "confirmed" && isMeetingPast(m)
       );
+    default: {
+      const _exhaustive: never = tab;
+      throw new Error(`Unhandled MeetingFilterTab: ${_exhaustive}`);
+    }
   }
 }
 
@@ -278,10 +282,14 @@ function HomeContent() {
       {/* Main content */}
       <main className="flex-1 overflow-y-auto px-4 pt-4 pb-24">
         {/* Filter tabs */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6 -mx-4 px-4">
+        <div role="tablist" aria-label="Meeting filters" className="flex gap-2 overflow-x-auto no-scrollbar mb-6 -mx-4 px-4">
           {TABS.map((tab) => (
             <button
               key={tab.key}
+              role="tab"
+              aria-selected={activeTab === tab.key}
+              aria-controls="meetings-panel"
+              tabIndex={activeTab === tab.key ? 0 : -1}
               onClick={() => setActiveTab(tab.key)}
               className={`flex-none h-10 px-5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === tab.key
@@ -294,6 +302,7 @@ function HomeContent() {
           ))}
         </div>
 
+        <div id="meetings-panel" role="tabpanel" aria-label={`${TABS.find((t) => t.key === activeTab)?.label} meetings`}>
         {/* Loading state */}
         {isLoading && (
           <div className="flex items-center justify-center py-20">
@@ -343,6 +352,7 @@ function HomeContent() {
             </p>
           </div>
         )}
+        </div>
       </main>
 
       {/* FAB */}
