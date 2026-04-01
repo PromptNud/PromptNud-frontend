@@ -24,7 +24,15 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
   // Check if user has previously submitted availability
   const { data: availabilityData } = useQuery({
     queryKey: ["availability", meetingId],
-    queryFn: () => api.getUserAvailability(meetingId),
+    queryFn: async () => {
+      try {
+        return await api.getUserAvailability(meetingId);
+      } catch (err) {
+        // 404 means no saved availability — not an error
+        if (err instanceof ApiError && err.status === 404) return undefined;
+        throw err;
+      }
+    },
     enabled: isInitialized,
     retry: false,
   });
