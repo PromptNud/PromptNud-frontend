@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import liff from "@line/liff";
 import { useLiff } from "@/hooks/useLiff";
+import { PageHeader } from "@/components/common/PageHeader";
 
 function HomePageContent() {
   const router = useRouter();
@@ -42,32 +43,25 @@ function HomePageContent() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-lg mx-auto p-4">
-        <header className="text-center py-6">
-          <h1 className="text-2xl font-bold text-gray-900">
-            📅 Meeting Scheduler
-          </h1>
-          {user ? (
-            <div className="mt-4">
-              {user.pictureUrl && (
-                <img
-                  src={user.pictureUrl}
-                  alt={user.displayName}
-                  className="w-16 h-16 rounded-full mx-auto mb-2"
-                />
-              )}
-              <p className="text-gray-600 text-lg font-medium">
-                Welcome, {user.displayName}!
-              </p>
-              <p className="text-gray-500 text-sm mt-1">
-                User ID: {user.userId}
-              </p>
-            </div>
-          ) : (
-            <p className="text-gray-600 mt-2">Not logged in</p>
-          )}
-        </header>
+    <div className="relative flex flex-col min-h-screen w-full max-w-md mx-auto bg-[#fdfaf6] overflow-hidden">
+      <PageHeader title="Meeting Scheduler" subtitle="Promptnud">
+        {user && (
+          <div className="flex items-center justify-center gap-3 mt-4">
+            {user.pictureUrl && (
+              <img
+                src={user.pictureUrl}
+                alt={user.displayName}
+                className="w-10 h-10 rounded-full border-2 border-white/30"
+              />
+            )}
+            <span className="text-white/90 text-sm font-medium">
+              {user.displayName}
+            </span>
+          </div>
+        )}
+      </PageHeader>
+
+      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-24">
 
         {/* LIFF Connection Status */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
@@ -146,8 +140,8 @@ function HomePageContent() {
             </p>
           </div>
         )}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
 

@@ -264,12 +264,12 @@ function MeetingsContent() {
   return (
     <div className="relative flex flex-col min-h-screen w-full max-w-md mx-auto bg-[#fdfaf6] overflow-hidden">
       {/* Header */}
-      <header className="bg-gradient-to-r from-[#f98006] to-[#ff9e3d] px-6 pt-12 pb-6 rounded-b-3xl shadow-lg relative z-10">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-white text-2xl font-bold">Group Meetings</h1>
-          <p className="text-white/80 text-sm">
+      <header className="bg-primary px-6 pt-12 pb-8 rounded-b-3xl shadow-lg relative z-10">
+        <div className="text-center">
+          <p className="text-white/80 text-sm font-medium uppercase tracking-wider mb-1">
             Manage all your scheduled events
           </p>
+          <h1 className="text-white text-2xl font-bold">Group Meetings</h1>
         </div>
       </header>
 

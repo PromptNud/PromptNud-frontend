@@ -597,10 +597,10 @@ function MeetingInfoContent({ meetingId }: { meetingId: string }) {
   return (
     <div className="relative flex flex-col min-h-screen w-full max-w-md mx-auto bg-[#fdfaf6] overflow-hidden">
       {/* Header */}
-      <header className="bg-[#f98006] pt-12 pb-8 px-6 rounded-b-3xl shadow-lg">
-        <h1 className="text-white text-lg font-bold text-center">
-          Meeting Details
-        </h1>
+      <header className="bg-primary px-6 pt-12 pb-8 rounded-b-3xl shadow-lg relative z-10">
+        <div className="text-center">
+          <h1 className="text-white text-2xl font-bold">Meeting Details</h1>
+        </div>
       </header>
 
       {/* Content */}

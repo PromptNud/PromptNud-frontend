@@ -134,12 +134,12 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
   return (
     <div className="relative flex flex-col min-h-screen w-full max-w-md mx-auto bg-bg-light overflow-hidden">
       {/* Header */}
-      <header className="bg-primary px-6 pt-12 pb-8 rounded-b-3xl shadow-lg text-white">
+      <header className="bg-primary px-6 pt-12 pb-8 rounded-b-3xl shadow-lg relative z-10">
         <div className="text-center">
           <p className="text-white/80 text-sm font-medium uppercase tracking-wider mb-1">
             Meeting Name
           </p>
-          <h1 className="text-3xl font-extrabold tracking-tight">
+          <h1 className="text-white text-2xl font-bold">
             {meeting.title}
           </h1>
         </div>
