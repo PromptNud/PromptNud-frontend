@@ -88,9 +88,14 @@ function formatDuration(minutes: number): string {
 
 function isMeetingPast(meeting: MeetingListItem): boolean {
   if (meeting.selectedDates.length === 0) return false;
-  const todayStr = new Intl.DateTimeFormat("en-CA", {
+  const parts = new Intl.DateTimeFormat("en", {
     timeZone: "Asia/Bangkok",
-  }).format(new Date());
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const get = (t: string) => parts.find((p) => p.type === t)!.value;
+  const todayStr = `${get("year")}-${get("month")}-${get("day")}`;
 
   return meeting.selectedDates.every((d) => d < todayStr);
 }
