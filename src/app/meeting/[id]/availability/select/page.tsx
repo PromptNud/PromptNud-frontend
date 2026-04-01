@@ -255,7 +255,7 @@ function SelectContent({ meetingId }: { meetingId: string }) {
       });
       await api.submitAvailability(meetingId, slots, sourceRef.current);
       sessionStorage.removeItem(`busySlots_${meetingId}`);
-      router.push(`/meeting/${meetingId}/availability`);
+      router.push(`/meeting/${meetingId}/availability?submitted=true`);
     } catch (err) {
       console.error("[SelectPage] Submit failed:", err);
       setSubmitError("Failed to submit availability. Please try again.");

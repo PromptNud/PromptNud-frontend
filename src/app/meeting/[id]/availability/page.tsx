@@ -12,6 +12,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const googleError = searchParams.get("google_error");
+  const justSubmitted = searchParams.get("submitted") === "true";
   const { isInitialized, user } = useLiff();
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
@@ -19,6 +20,16 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
   const [needsReconnect, setNeedsReconnect] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
   const joiningRef = useRef(false);
+
+  // Check if user has previously submitted availability
+  const { data: availabilityData } = useQuery({
+    queryKey: ["availability", meetingId],
+    queryFn: () => api.getUserAvailability(meetingId),
+    enabled: isInitialized,
+    retry: false,
+  });
+  const hasExistingAvailability =
+    (availabilityData?.data?.availableSlots?.length ?? 0) > 0 || justSubmitted;
 
   // Auto-join meeting to link LINE user to invitee record
   useEffect(() => {
@@ -147,8 +158,36 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
 
       {/* Main Content */}
       <main className="flex-1 px-6 pt-10 pb-12 flex flex-col items-center">
+        {justSubmitted && (
+          <div className="w-full bg-[#e8f5e9] border border-[#a5d6a7] rounded-2xl px-4 py-3 mb-6 flex items-center gap-3">
+            <span
+              className="material-symbols-outlined text-[#2e7d32] text-2xl"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              check_circle
+            </span>
+            <p className="text-[#1b5e20] text-sm font-semibold">
+              Your availability has been submitted!
+            </p>
+          </div>
+        )}
+
+        {!justSubmitted && hasExistingAvailability && (
+          <div className="w-full bg-[#e8f5e9] border border-[#c8e6c9] rounded-2xl px-4 py-3 mb-6 flex items-center gap-3">
+            <span
+              className="material-symbols-outlined text-[#2e7d32] text-xl"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              check_circle
+            </span>
+            <p className="text-[#2e7d32] text-sm font-medium">
+              Availability submitted
+            </p>
+          </div>
+        )}
+
         <h2 className="text-2xl font-bold text-gray-800 mb-8">
-          When are you free?
+          {hasExistingAvailability ? "Want to update?" : "When are you free?"}
         </h2>
 
         <div className="w-full space-y-6">
@@ -254,7 +293,7 @@ function AvailabilityContent({ meetingId }: { meetingId: string }) {
               onClick={() => router.push(`/meeting/${meetingId}/availability/select?mode=manual`)}
               className="w-full border-2 border-primary text-primary hover:bg-primary/5 font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2"
             >
-              Choose Times
+              {hasExistingAvailability ? "Update Times" : "Choose Times"}
             </button>
           </div>
         </div>
