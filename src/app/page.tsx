@@ -222,7 +222,7 @@ function HomeContent() {
 
   const groupId = searchParams.get("groupId");
 
-  const { data: meetings, isLoading, isError } = useQuery({
+  const { data: meetings, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["meetings", "group", groupId],
     queryFn: async () => {
       const res = await api.getMeetingsByGroup(groupId!);
@@ -308,6 +308,13 @@ function HomeContent() {
             <p className="text-gray-400 text-sm mt-1">
               Please check your connection and try again.
             </p>
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="mt-4 px-5 py-2 bg-[#f98006] hover:bg-[#d66c00] disabled:opacity-50 text-white text-sm font-semibold rounded-full transition-colors"
+            >
+              {isFetching ? "Retrying…" : "Retry"}
+            </button>
           </div>
         )}
 
