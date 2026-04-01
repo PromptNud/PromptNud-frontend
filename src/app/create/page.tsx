@@ -35,7 +35,6 @@ const MEETING_TYPES: { value: MeetingType; label: string; icon: string }[] = [
 ];
 
 const DURATION_PRESETS = [
-  { label: "30m", minutes: 30 },
   { label: "1h", minutes: 60 },
   { label: "2h", minutes: 120 },
 ];

@@ -231,9 +231,10 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
   const invitees = meeting.invitees ?? [];
   const isCollecting = meeting.status === "collecting";
   const isConfirmed = meeting.status === "confirmed";
-  const displayInvitees = isConfirmed
+  const displayInvitees = (isConfirmed
     ? invitees.filter((i) => i.status === "joined")
-    : invitees;
+    : invitees
+  ).filter((i) => i.userId !== meeting.organizerUserId);
   const MAX_AVATARS = 8;
 
   const hasOrganizer = !!meeting.organizerDisplayName;
@@ -290,16 +291,16 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
               </span>
               {isCollecting ? (
                 meeting.organizerHasSubmittedAvailability ? (
-                  <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white p-0.5">
+                  <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white w-4 h-4 flex items-center justify-center">
                     <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">check</span>
                   </span>
                 ) : (
-                  <span className="absolute bottom-0 right-0 bg-amber-500 rounded-full border border-white p-0.5">
+                  <span className="absolute bottom-0 right-0 bg-amber-500 rounded-full border border-white w-4 h-4 flex items-center justify-center">
                     <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">schedule</span>
                   </span>
                 )
               ) : (
-                <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white p-0.5">
+                <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white w-4 h-4 flex items-center justify-center">
                   <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">check</span>
                 </span>
               )}
@@ -327,17 +328,17 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
               </span>
               {isCollecting ? (
                 inv.hasSubmittedAvailability ? (
-                  <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white p-0.5">
+                  <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white w-4 h-4 flex items-center justify-center">
                     <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">check</span>
                   </span>
                 ) : (
-                  <span className="absolute bottom-0 right-0 bg-amber-500 rounded-full border border-white p-0.5">
+                  <span className="absolute bottom-0 right-0 bg-amber-500 rounded-full border border-white w-4 h-4 flex items-center justify-center">
                     <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">schedule</span>
                   </span>
                 )
               ) : (
                 inv.status === "joined" && (
-                  <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white p-0.5">
+                  <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white w-4 h-4 flex items-center justify-center">
                     <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">check</span>
                   </span>
                 )
