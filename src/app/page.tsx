@@ -88,9 +88,9 @@ function formatDuration(minutes: number): string {
 
 function isMeetingPast(meeting: MeetingListItem): boolean {
   if (meeting.selectedDates.length === 0) return false;
-  // Bangkok is UTC+7
-  const bangkokNow = new Date(Date.now() + 7 * 60 * 60000);
-  const todayStr = bangkokNow.toISOString().slice(0, 10);
+  const todayStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+  }).format(new Date());
 
   return meeting.selectedDates.every((d) => d < todayStr);
 }
