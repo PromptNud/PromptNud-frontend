@@ -75,7 +75,7 @@ function locationDisplay(mode: LocationMode, location?: string) {
     case "decide_later":
       return { icon: "location_off", text: "Decide Later" };
     case "recommend":
-      return { icon: "explore", text: "Recommendation" };
+      return { icon: location ? "location_on" : "explore", text: location || "Recommendation" };
     default: {
       const _exhaustive: never = mode;
       throw new Error(`Unhandled LocationMode: ${_exhaustive}`);
@@ -291,17 +291,17 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
               </span>
               {isCollecting ? (
                 meeting.organizerHasSubmittedAvailability ? (
-                  <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white w-4 h-4 flex items-center justify-center">
-                    <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">check</span>
+                  <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center">
+                    <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                   </span>
                 ) : (
-                  <span className="absolute bottom-0 right-0 bg-amber-500 rounded-full border border-white w-4 h-4 flex items-center justify-center">
-                    <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">schedule</span>
+                  <span className="absolute -bottom-0.5 -right-0.5 bg-amber-500 rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center">
+                    <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><circle cx="12" cy="12" r="9" /><path strokeLinecap="round" d="M12 7v5l3 3" /></svg>
                   </span>
                 )
               ) : (
-                <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white w-4 h-4 flex items-center justify-center">
-                  <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">check</span>
+                <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center">
+                  <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 </span>
               )}
             </div>
@@ -328,18 +328,18 @@ function AttendeesCard({ meeting }: { meeting: Meeting }) {
               </span>
               {isCollecting ? (
                 inv.hasSubmittedAvailability ? (
-                  <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white w-4 h-4 flex items-center justify-center">
-                    <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">check</span>
+                  <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center">
+                    <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                   </span>
                 ) : (
-                  <span className="absolute bottom-0 right-0 bg-amber-500 rounded-full border border-white w-4 h-4 flex items-center justify-center">
-                    <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">schedule</span>
+                  <span className="absolute -bottom-0.5 -right-0.5 bg-amber-500 rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center">
+                    <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><circle cx="12" cy="12" r="9" /><path strokeLinecap="round" d="M12 7v5l3 3" /></svg>
                   </span>
                 )
               ) : (
                 inv.status === "joined" && (
-                  <span className="absolute bottom-0 right-0 bg-emerald-500 rounded-full border border-white w-4 h-4 flex items-center justify-center">
-                    <span aria-hidden="true" className="material-symbols-outlined text-[10px] text-white block">check</span>
+                  <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 rounded-full border-2 border-white w-[18px] h-[18px] flex items-center justify-center">
+                    <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                   </span>
                 )
               )}
