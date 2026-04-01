@@ -1,38 +1,249 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import liff from "@line/liff";
+import { Suspense, useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
 import { useLiff } from "@/hooks/useLiff";
+import { api } from "@/lib/api";
 import { PageHeader } from "@/components/common/PageHeader";
+import type {
+  MeetingListItem,
+  MeetingStatus,
+  MeetingFilterTab,
+  MeetingTypeEnum,
+  LocationMode,
+} from "@/types/meeting";
 
-function HomePageContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { user, isInitialized, isInClient } = useLiff();
-  const [groupId, setGroupId] = useState<string | null>(null);
-  const [contextType, setContextType] = useState<string>("");
+// --- Status badge config ---
 
-  useEffect(() => {
-    if (!isInitialized) return;
+const STATUS_BADGE: Record<
+  MeetingStatus,
+  { bg: string; text: string; dot: string; label: string }
+> = {
+  collecting: {
+    bg: "bg-amber-100",
+    text: "text-amber-700",
+    dot: "bg-amber-500",
+    label: "Collecting",
+  },
+  voting: {
+    bg: "bg-blue-100",
+    text: "text-blue-700",
+    dot: "bg-blue-500",
+    label: "Voting",
+  },
+  confirmed: {
+    bg: "bg-green-100",
+    text: "text-green-700",
+    dot: "bg-green-500",
+    label: "Confirmed",
+  },
+  cancelled: {
+    bg: "bg-red-100",
+    text: "text-red-700",
+    dot: "bg-red-500",
+    label: "Cancelled",
+  },
+};
 
-    // Get groupId from URL params (provided by LINE bot webhook link)
-    const urlGroupId = searchParams.get("groupId");
-    const context = liff.getContext();
+// --- Meeting type icons (Material Symbols Outlined names) ---
 
-    setGroupId(urlGroupId || null);
-    setContextType(context?.type || "none");
+const TYPE_ICON: Record<MeetingTypeEnum, { icon: string; label: string }> = {
+  meals: { icon: "restaurant", label: "Meals" },
+  cafe: { icon: "local_cafe", label: "Cafe" },
+  sports: { icon: "sports_soccer", label: "Sports" },
+  others: { icon: "more_horiz", label: "Others" },
+};
 
-    // Handle action param
-    const action = searchParams.get("action");
-    if (action === "create") {
-      router.push(`/create${urlGroupId ? `?groupId=${urlGroupId}` : ""}`);
+// --- Location display ---
+
+function locationDisplay(mode: LocationMode, location?: string) {
+  switch (mode) {
+    case "specify":
+      return { icon: "location_on", text: location || "Specified" };
+    case "decide_later":
+      return { icon: "location_off", text: "Decide Later" };
+    case "recommend":
+      return { icon: "explore", text: "Recommendation" };
+    default: {
+      const _exhaustive: never = mode;
+      throw new Error(`Unhandled LocationMode: ${_exhaustive}`);
     }
-  }, [searchParams, router, isInitialized]);
+  }
+}
 
-  const handleCreateMeeting = () => {
-    router.push(`/create${groupId ? `?groupId=${groupId}` : ""}`);
-  };
+// --- Duration formatting ---
+
+function formatDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+// --- "Past" check: all selected dates < today (Bangkok) ---
+
+function isMeetingPast(meeting: MeetingListItem): boolean {
+  if (meeting.selectedDates.length === 0) return false;
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const get = (t: string) => parts.find((p) => p.type === t)!.value;
+  const todayStr = `${get("year")}-${get("month")}-${get("day")}`;
+
+  return meeting.selectedDates.every((d) => d < todayStr);
+}
+
+// --- Filter logic ---
+
+const TABS: { key: MeetingFilterTab; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "active", label: "Active" },
+  { key: "confirmed", label: "Confirmed" },
+  { key: "cancelled", label: "Cancelled" },
+  { key: "past", label: "Past" },
+];
+
+function filterMeetings(
+  meetings: MeetingListItem[],
+  tab: MeetingFilterTab
+): MeetingListItem[] {
+  switch (tab) {
+    case "all":
+      return meetings;
+    case "active":
+      return meetings.filter(
+        (m) => m.status === "collecting" || m.status === "voting"
+      );
+    case "confirmed":
+      return meetings.filter(
+        (m) => m.status === "confirmed" && !isMeetingPast(m)
+      );
+    case "cancelled":
+      return meetings.filter((m) => m.status === "cancelled");
+    case "past":
+      return meetings.filter(
+        (m) => m.status === "confirmed" && isMeetingPast(m)
+      );
+    default: {
+      const _exhaustive: never = tab;
+      throw new Error(`Unhandled MeetingFilterTab: ${_exhaustive}`);
+    }
+  }
+}
+
+// --- Empty state messages ---
+
+const EMPTY_MESSAGES: Record<MeetingFilterTab, string> = {
+  all: "No meetings yet. Create one to get started!",
+  active: "No active meetings right now.",
+  confirmed: "No confirmed upcoming meetings.",
+  cancelled: "No cancelled meetings.",
+  past: "No past meetings.",
+};
+
+// --- Components ---
+
+function StatusBadge({ status }: { status: MeetingStatus }) {
+  const badge = STATUS_BADGE[status];
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold ${badge.bg} ${badge.text}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${badge.dot} mr-1.5`} />
+      {badge.label}
+    </span>
+  );
+}
+
+function MeetingCard({ meeting }: { meeting: MeetingListItem }) {
+  const typeInfo = TYPE_ICON[meeting.type] || TYPE_ICON.others;
+  const loc = locationDisplay(meeting.locationMode, meeting.location);
+  const updatedAgo = formatDistanceToNow(new Date(meeting.updatedAt), {
+    addSuffix: true,
+  });
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+      <div className="p-4 pb-3">
+        {/* Status + timestamp */}
+        <div className="flex items-center justify-between mb-3">
+          <StatusBadge status={meeting.status} />
+          <span className="text-xs text-gray-500 font-medium">
+            Updated {updatedAgo}
+          </span>
+        </div>
+
+        {/* Title */}
+        <h3 className="text-lg font-bold text-gray-900 mb-4 line-clamp-1">
+          {meeting.title}
+        </h3>
+
+        {/* Details row */}
+        <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600">
+          <div className="flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[18px]">
+              {typeInfo.icon}
+            </span>
+            <span>{typeInfo.label}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[18px]">
+              schedule
+            </span>
+            <span>{formatDuration(meeting.durationMinutes)}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[18px]">
+              {loc.icon}
+            </span>
+            <span>{loc.text}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="border-t border-gray-100 bg-gray-50 p-3 flex justify-end">
+        <Link
+          href={`/meeting/${meeting.id}`}
+          className="text-[#f98006] text-sm font-semibold flex items-center gap-1 hover:text-[#d66c00] transition-colors"
+        >
+          View Details
+          <span className="material-symbols-outlined text-[16px]">
+            chevron_right
+          </span>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const { isInitialized } = useLiff();
+  const [activeTab, setActiveTab] = useState<MeetingFilterTab>("all");
+
+  const groupId = searchParams.get("groupId");
+
+  const { data: meetings, isLoading, isError, refetch, isFetching } = useQuery({
+    queryKey: ["meetings", "group", groupId],
+    queryFn: async () => {
+      const res = await api.getMeetingsByGroup(groupId!);
+      return res.data;
+    },
+    enabled: !!groupId && isInitialized,
+  });
+
+  const filtered = useMemo(
+    () => (meetings ? filterMeetings(meetings, activeTab) : []),
+    [meetings, activeTab]
+  );
 
   if (!isInitialized) {
     return (
@@ -42,105 +253,120 @@ function HomePageContent() {
     );
   }
 
-  return (
-    <div className="relative flex flex-col min-h-screen w-full max-w-md mx-auto bg-[#fdfaf6] overflow-hidden">
-      <PageHeader title="Meeting Scheduler" subtitle="Promptnud">
-        {user && (
-          <div className="flex items-center justify-center gap-3 mt-4">
-            {user.pictureUrl && (
-              <img
-                src={user.pictureUrl}
-                alt={user.displayName}
-                className="w-10 h-10 rounded-full border-2 border-white/30"
-              />
-            )}
-            <span className="text-white/90 text-sm font-medium">
-              {user.displayName}
-            </span>
-          </div>
-        )}
-      </PageHeader>
-
-      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-24">
-
-        {/* LIFF Connection Status */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
-          <h2 className="font-bold text-gray-900 mb-3">🔌 LIFF Connection Status</h2>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">LIFF Initialized:</span>
-              <span className={isInitialized ? "text-green-600 font-medium" : "text-red-600"}>
-                {isInitialized ? "✓ Yes" : "✗ No"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Running in LINE:</span>
-              <span className={isInClient ? "text-green-600 font-medium" : "text-yellow-600"}>
-                {isInClient ? "✓ Yes" : "⚠ External Browser"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">User Logged In:</span>
-              <span className={user ? "text-green-600 font-medium" : "text-red-600"}>
-                {user ? "✓ Yes" : "✗ No"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Context Type:</span>
-              <span className="text-gray-900 font-medium">
-                {contextType || "none"}
-              </span>
-            </div>
-            {groupId && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Group ID:</span>
-                <span className="text-gray-900 font-mono text-xs">
-                  {groupId.slice(0, 20)}...
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Info Box */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <p className="text-blue-800 text-sm">
-            <strong>ℹ️ Testing LIFF Connection:</strong><br/>
-            {!isInClient && (
-              <span>
-                You are viewing this in an external browser. For full LIFF features,
-                open this URL in the LINE app.
-              </span>
-            )}
-            {isInClient && !groupId && (
-              <span>
-                Open this app from a LINE group chat to test group functionality.
-              </span>
-            )}
-            {isInClient && groupId && (
-              <span>
-                ✓ Successfully connected from LINE group chat!
-              </span>
-            )}
+  if (!groupId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#fdfaf6]">
+        <div className="text-center px-6">
+          <span className="material-symbols-outlined text-gray-300 text-6xl mb-4 block">
+            group_off
+          </span>
+          <p className="text-gray-500 text-lg font-medium">
+            No group ID provided
+          </p>
+          <p className="text-gray-400 text-sm mt-2">
+            Open this page from a LINE group chat.
           </p>
         </div>
+      </div>
+    );
+  }
 
-        <button
-          onClick={handleCreateMeeting}
-          className="w-full mb-6 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-        >
-          + Create New Meeting (Demo)
-        </button>
+  return (
+    <div className="relative flex flex-col min-h-screen w-full max-w-md mx-auto bg-[#fdfaf6] overflow-hidden">
+      {/* Header */}
+      <PageHeader
+        title="Group Meetings"
+        subtitle="Manage all your scheduled events"
+      />
 
-        {!isInClient && (
-          <div className="text-center text-gray-500 py-8 bg-yellow-50 rounded-lg border border-yellow-200">
-            <p className="font-medium">⚠️ Not running in LINE app</p>
-            <p className="text-sm mt-2">
-              To test the full LIFF integration, open this URL in the LINE app.
+      {/* Main content */}
+      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-24">
+        {/* Filter tabs */}
+        <div role="tablist" aria-label="Meeting filters" className="flex gap-2 overflow-x-auto no-scrollbar mb-6 -mx-4 px-4">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              role="tab"
+              aria-selected={activeTab === tab.key}
+              aria-controls="meetings-panel"
+              tabIndex={activeTab === tab.key ? 0 : -1}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-none h-10 px-5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === tab.key
+                  ? "bg-[#f98006]/10 text-[#f98006] font-bold border border-[#f98006]/20 shadow-sm"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div id="meetings-panel" role="tabpanel" aria-label={`${TABS.find((t) => t.key === activeTab)?.label} meetings`}>
+        {/* Loading state */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
+          </div>
+        )}
+
+        {/* Error state */}
+        {isError && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <span className="material-symbols-outlined text-red-300 text-5xl mb-4">
+              cloud_off
+            </span>
+            <p className="text-gray-600 font-medium">
+              Failed to load meetings
+            </p>
+            <p className="text-gray-400 text-sm mt-1">
+              Please check your connection and try again.
+            </p>
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="mt-4 px-5 py-2 bg-[#f98006] hover:bg-[#d66c00] disabled:opacity-50 text-white text-sm font-semibold rounded-full transition-colors"
+            >
+              {isFetching ? "Retrying…" : "Retry"}
+            </button>
+          </div>
+        )}
+
+        {/* Meeting cards */}
+        {!isLoading && !isError && filtered.length > 0 && (
+          <div className="space-y-4">
+            {filtered.map((meeting) => (
+              <MeetingCard key={meeting.id} meeting={meeting} />
+            ))}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!isLoading && !isError && filtered.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <span className="material-symbols-outlined text-gray-300 text-5xl mb-4">
+              event_busy
+            </span>
+            <p className="text-gray-500 font-medium">
+              {EMPTY_MESSAGES[activeTab]}
             </p>
           </div>
         )}
+        </div>
       </main>
+
+      {/* FAB */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-20">
+        <Link
+          href={`/create?groupId=${encodeURIComponent(groupId)}`}
+          aria-label="Create new meeting"
+          className="bg-[#f98006] hover:bg-[#d66c00] text-white rounded-full p-4 shadow-lg transition-colors flex items-center justify-center border-4 border-[#fdfaf6]"
+        >
+          <span className="material-symbols-outlined block text-[28px]">
+            add
+          </span>
+        </Link>
+      </div>
     </div>
   );
 }
@@ -154,7 +380,7 @@ export default function HomePage() {
         </div>
       }
     >
-      <HomePageContent />
+      <HomeContent />
     </Suspense>
   );
 }
