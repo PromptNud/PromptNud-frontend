@@ -154,10 +154,14 @@ export default function VenuePage({ params }: { params: Promise<{ id: string }> 
   return (
     <div className="min-h-screen bg-[#FCF9F5] pb-10">
       {/* Header */}
-      <header className="bg-[#f98006] px-6 pt-12 pb-8 rounded-b-3xl shadow-lg relative z-10">
-        <h1 className="text-white text-lg font-bold mb-1">AI Location Suggestions</h1>
-        <h2 className="text-white text-2xl font-bold leading-tight mb-3">{meeting.title}</h2>
-        <div className="flex items-center gap-4 text-white">
+      <header className="bg-primary px-6 pt-12 pb-8 rounded-b-3xl shadow-lg relative z-10">
+        <div className="text-center">
+          <p className="text-white/80 text-sm font-medium uppercase tracking-wider mb-1">
+            AI Location Suggestions
+          </p>
+          <h1 className="text-white text-2xl font-bold mb-3">{meeting.title}</h1>
+        </div>
+        <div className="flex items-center justify-center gap-4 text-white">
           <InfoBadge label="Type" value={meeting.type} />
           <div className="h-6 w-[1px] bg-white opacity-30" />
           <InfoBadge label="Duration" value={`${meeting.durationMinutes} min`} />

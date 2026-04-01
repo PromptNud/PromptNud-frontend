@@ -356,7 +356,7 @@ function CreateMeetingContent() {
   return (
     <div className="relative flex flex-col min-h-screen w-full max-w-md mx-auto bg-bg-light shadow-2xl overflow-hidden">
       {/* Header */}
-      <header className="bg-primary px-6 pt-6 pb-8 rounded-b-3xl shadow-lg relative z-10">
+      <header className="bg-primary px-6 pt-12 pb-8 rounded-b-3xl shadow-lg relative z-10">
         <div className="flex flex-col gap-1">
           <label
             className="text-sm font-medium text-white/80"

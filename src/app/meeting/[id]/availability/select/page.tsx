@@ -286,11 +286,11 @@ function SelectContent({ meetingId }: { meetingId: string }) {
     >
       {/* Header */}
       <header className="bg-primary px-6 pt-12 pb-8 rounded-b-3xl shadow-lg relative z-20 shrink-0">
-        <div className="flex flex-col gap-1">
-          <p className="text-white/80 text-sm font-medium uppercase tracking-wide">
+        <div className="text-center">
+          <p className="text-white/80 text-sm font-medium uppercase tracking-wider mb-1">
             Meeting
           </p>
-          <h2 className="text-white text-2xl font-bold">{meeting.title}</h2>
+          <h1 className="text-white text-2xl font-bold">{meeting.title}</h1>
         </div>
       </header>
 
