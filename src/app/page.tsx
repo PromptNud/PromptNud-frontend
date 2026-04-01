@@ -66,7 +66,7 @@ function locationDisplay(mode: LocationMode, location?: string) {
     case "decide_later":
       return { icon: "location_off", text: "Decide Later" };
     case "recommend":
-      return { icon: "explore", text: "Recommendation" };
+      return { icon: location ? "location_on" : "explore", text: location || "Recommendation" };
     default: {
       const _exhaustive: never = mode;
       throw new Error(`Unhandled LocationMode: ${_exhaustive}`);
