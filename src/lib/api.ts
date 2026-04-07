@@ -409,7 +409,7 @@ class ApiClient {
   }
 
   async cancelMeeting(meetingId: string) {
-    return this.fetch<{ data: unknown }>(`/meetings/${meetingId}/status`, {
+    return this.fetch<{ data: { message: string } }>(`/meetings/${meetingId}/status`, {
       method: "PUT",
       body: JSON.stringify({ status: "cancelled" }),
     });

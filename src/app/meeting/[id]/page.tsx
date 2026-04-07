@@ -464,7 +464,7 @@ function ActionButtons({ meeting, currentUserId }: { meeting: Meeting; currentUs
     setCancelling(true);
     try {
       await api.cancelMeeting(meeting.id);
-      queryClient.invalidateQueries({ queryKey: ["meeting", meeting.id] });
+      await queryClient.invalidateQueries({ queryKey: ["meeting", meeting.id] });
     } catch {
       alert("Failed to cancel meeting. Please try again.");
     } finally {
