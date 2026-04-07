@@ -408,6 +408,13 @@ class ApiClient {
     });
   }
 
+  async cancelMeeting(meetingId: string) {
+    return this.fetch<{ data: unknown }>(`/meetings/${meetingId}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status: "cancelled" }),
+    });
+  }
+
   // Google Calendar
   async getGoogleAuthUrl(meetingId: string) {
     const res = await this.fetch<{ data: { auth_url: string } }>(
