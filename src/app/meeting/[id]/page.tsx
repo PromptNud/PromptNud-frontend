@@ -576,7 +576,13 @@ function buildGoogleCalendarUrl(meeting: Meeting): string | null {
 // --- Main Content ---
 
 function MeetingInfoContent({ meetingId }: { meetingId: string }) {
-  const { isInitialized, user } = useLiff();
+  const { isInitialized } = useLiff();
+
+  const { data: currentUser } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => api.getMe().then((r) => r.data),
+    enabled: isInitialized,
+  });
 
   const {
     data,
@@ -645,7 +651,7 @@ function MeetingInfoContent({ meetingId }: { meetingId: string }) {
         <AttendeesCard meeting={meeting} />
         <ParametersCard meeting={meeting} />
         {meeting.notes && <NotesCard notes={meeting.notes} />}
-        <ActionButtons meeting={meeting} currentUserId={user?.userId} />
+        <ActionButtons meeting={meeting} currentUserId={currentUser?.id} />
       </main>
     </div>
   );
