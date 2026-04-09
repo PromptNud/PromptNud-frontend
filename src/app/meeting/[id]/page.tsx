@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parse } from "date-fns";
 import Link from "next/link";
 import { useLiff } from "@/hooks/useLiff";
@@ -453,7 +453,36 @@ function NotesCard({ notes }: { notes: string }) {
 
 // --- Action Buttons ---
 
-function ActionButtons({ meeting }: { meeting: Meeting }) {
+function ActionButtons({ meeting, currentUserId }: { meeting: Meeting; currentUserId?: string }) {
+  const queryClient = useQueryClient();
+  const [cancelling, setCancelling] = useState(false);
+
+  const isOrganizer = currentUserId === meeting.organizerUserId;
+
+  const handleCancel = async () => {
+    if (!confirm("Are you sure you want to cancel this meeting?")) return;
+    setCancelling(true);
+    try {
+      await api.cancelMeeting(meeting.id);
+      await queryClient.invalidateQueries({ queryKey: ["meeting", meeting.id] });
+    } catch {
+      alert("Failed to cancel meeting. Please try again.");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const cancelButton = isOrganizer && meeting.status !== "cancelled" && (
+    <button
+      onClick={handleCancel}
+      disabled={cancelling}
+      className="w-full border-2 border-red-400 text-red-500 hover:bg-red-50 font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-50"
+    >
+      <span aria-hidden="true" className="material-symbols-outlined">cancel</span>
+      {cancelling ? "Cancelling..." : "Cancel Meeting"}
+    </button>
+  );
+
   if (meeting.status === "cancelled") return null;
 
   if (meeting.status === "collecting") {
@@ -466,6 +495,7 @@ function ActionButtons({ meeting }: { meeting: Meeting }) {
           <span aria-hidden="true" className="material-symbols-outlined">edit_calendar</span>
           Submit Availability
         </Link>
+        {cancelButton}
       </div>
     );
   }
@@ -480,6 +510,7 @@ function ActionButtons({ meeting }: { meeting: Meeting }) {
           <span aria-hidden="true" className="material-symbols-outlined">how_to_vote</span>
           Vote Now
         </Link>
+        {cancelButton}
       </div>
     );
   }
@@ -509,6 +540,7 @@ function ActionButtons({ meeting }: { meeting: Meeting }) {
             Add to Calendar
           </a>
         )}
+        {cancelButton}
       </div>
     );
   }
@@ -544,7 +576,7 @@ function buildGoogleCalendarUrl(meeting: Meeting): string | null {
 // --- Main Content ---
 
 function MeetingInfoContent({ meetingId }: { meetingId: string }) {
-  const { isInitialized } = useLiff();
+  const { isInitialized, user } = useLiff();
 
   const {
     data,
@@ -613,7 +645,7 @@ function MeetingInfoContent({ meetingId }: { meetingId: string }) {
         <AttendeesCard meeting={meeting} />
         <ParametersCard meeting={meeting} />
         {meeting.notes && <NotesCard notes={meeting.notes} />}
-        <ActionButtons meeting={meeting} />
+        <ActionButtons meeting={meeting} currentUserId={user?.userId} />
       </main>
     </div>
   );
