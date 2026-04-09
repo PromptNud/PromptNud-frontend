@@ -130,6 +130,7 @@ export interface VenueRanking {
   highlights?: string[];
   concerns?: string[];
   vegetarianFriendly?: boolean;
+  photoUrl?: string;
 }
 
 export interface VenueResult {
