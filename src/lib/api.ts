@@ -106,6 +106,7 @@ interface VenueRankingRaw {
   highlights?: string[];
   concerns?: string[];
   vegetarian_friendly?: boolean;
+  photo_ref?: string;
 }
 
 interface VenueResultRaw {
@@ -270,6 +271,9 @@ function mapVenueRanking(raw: VenueRankingRaw): VenueRanking {
     highlights: raw.highlights,
     concerns: raw.concerns,
     vegetarianFriendly: raw.vegetarian_friendly,
+    photoUrl: raw.photo_ref
+      ? `${getApiBaseUrl()}/venues/photo?ref=${encodeURIComponent(raw.photo_ref)}`
+      : undefined,
   };
 }
 

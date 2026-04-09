@@ -316,6 +316,15 @@ function VenueCard({
 }) {
   return (
     <article className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+      {venue.photoUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={venue.photoUrl}
+          alt={venue.name}
+          className="w-full h-40 object-cover"
+          loading="lazy"
+        />
+      )}
       <div className="p-4">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-bold text-gray-800">{venue.name}</h3>
