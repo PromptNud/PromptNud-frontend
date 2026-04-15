@@ -649,7 +649,7 @@ function MeetingInfoContent({ meetingId }: { meetingId: string }) {
         <StatusBadge status={meeting.status} />
         <SummaryCard meeting={meeting} />
         <AttendeesCard meeting={meeting} />
-        <ParametersCard meeting={meeting} />
+        {meeting.status !== "confirmed" && <ParametersCard meeting={meeting} />}
         {meeting.notes && <NotesCard notes={meeting.notes} />}
         <ActionButtons meeting={meeting} currentUserId={currentUser?.id} />
       </main>
