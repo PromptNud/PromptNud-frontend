@@ -367,7 +367,7 @@ function ParametersCard({ meeting }: { meeting: Meeting }) {
 
   return (
     <div className="bg-white p-5 rounded-xl shadow-sm border border-[#f98006]/10">
-      <h3 className="font-bold mb-4">Original Parameters</h3>
+      <h3 className="font-bold mb-4">Meeting Details</h3>
       <div className="space-y-4">
         {/* Selected dates */}
         <div>
